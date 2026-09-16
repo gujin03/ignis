@@ -1,0 +1,75 @@
+name: Community plugin problem
+description: A community plugin fails to load, won't enable, or a feature doesn't work as expected.
+title: "[Plugin] "
+labels: ["bug", "plugin"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Plugin compatibility is tracked in [issue #9](https://github.com/Nystik-gh/ignis/issues/9). Check whether the plugin is already listed there. Common problems have fixes in [Troubleshooting](https://ignis.thiefling.com/docs/troubleshooting/).
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: What fails, and what you did to get there.
+      placeholder: The plugin installs but shows "Failed to load plugin" when I enable it.
+    validations:
+      required: true
+  - type: input
+    id: plugin-url
+    attributes:
+      label: Plugin repository URL
+      placeholder: https://github.com/author/plugin-name
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: 2.0.21
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How the plugin was installed
+      options:
+        - Community plugin browser
+        - Manually (downloaded and unzipped into .obsidian/plugins)
+        - BRAT or other
+    validations:
+      required: true
+  - type: dropdown
+    id: works-on-desktop
+    attributes:
+      label: Does the plugin work in desktop Obsidian?
+      options:
+        - "Yes"
+        - "No"
+        - Haven't tried
+    validations:
+      required: true
+  - type: input
+    id: ignis-version
+    attributes:
+      label: Ignis version
+      description: The Docker image tag, or the version shown in Ignis settings.
+      placeholder: nobbe/ignis:0.8.8
+    validations:
+      required: true
+  - type: input
+    id: browser-os
+    attributes:
+      label: Browser and OS
+      description: Include whether desktop or mobile.
+      placeholder: Chrome 142 on Windows 11 (desktop), Safari on iOS 27 (mobile)
+    validations:
+      required: true
+  - type: textarea
+    id: console-output
+    attributes:
+      label: Console output
+      description: Open the browser console (F12 or Ctrl+Shift+I, Console tab) and paste the output from when the plugin fails. Paste the console text, not the popup notice. If you are on mobile and cannot open a console, say so.
+      render: text
+    validations:
+      required: true

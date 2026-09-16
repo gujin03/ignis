@@ -1,0 +1,23 @@
+/* CSS overrides for browser vs desktop differences. */
+
+/* Remove right padding for non-existent window controls (minimize/maximize/close). */
+.is-hidden-frameless:not(.is-fullscreen) .workspace-tabs.mod-top-right-space .workspace-tab-header-container {
+  padding-right: var(--size-4-2) !important;
+}
+
+.is-hidden-frameless:not(.is-fullscreen):not(.mod-macos) .workspace-tabs.mod-top-right-space .workspace-tab-header-container:after {
+  display: none !important;
+}
+
+/* fix table cell height in firefox in edit mode with live preview */
+.markdown-source-view.mod-cm6 .cm-table-widget th,
+.markdown-source-view.mod-cm6 .cm-table-widget td {
+  height: auto !important;
+}
+
+/* theme vault select on desktop in mobile mode for good measure */
+.workspace-drawer-header-switcher select,
+.workspace-drawer-header-switcher select option {
+  background-color: var(--background-secondary);
+  color: var(--text-normal);
+}

@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in Ignis behaves wrongly in the browser. For a community plugin or a deployment problem, use those forms instead.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Common problems have fixes in [Troubleshooting](https://ignis.thiefling.com/docs/troubleshooting/).
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: What goes wrong, what you expected, and the steps to reproduce.
+    validations:
+      required: true
+  - type: dropdown
+    id: works-on-desktop
+    attributes:
+      label: Does this work in desktop Obsidian?
+      description: Whether the same feature behaves correctly in the desktop app.
+      options:
+        - Works in desktop Obsidian, broken in Ignis
+        - Broken in both
+        - Not applicable (Ignis-specific feature)
+        - Haven't tried
+    validations:
+      required: true
+  - type: input
+    id: ignis-version
+    attributes:
+      label: Ignis version
+      description: The Docker image tag, or the version shown in Ignis settings.
+      placeholder: nobbe/ignis:0.8.8
+    validations:
+      required: true
+  - type: input
+    id: browser-os
+    attributes:
+      label: Browser and OS
+      description: Include whether desktop or mobile.
+      placeholder: Firefox 145 on Fedora 42 (desktop)
+    validations:
+      required: true
+  - type: input
+    id: deployment-shape
+    attributes:
+      label: Deployment
+      description: Details about your setup.
+      placeholder: Docker behind Caddy with basic auth, HTTPS
+  - type: textarea
+    id: console-output
+    attributes:
+      label: Console output
+      description: Open the browser console (F12 or Ctrl+Shift+I, Console tab) and paste anything that appears when the bug happens.
+      render: text

@@ -1,0 +1,45 @@
+services:
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - ignis
+    restart: unless-stopped
+
+  authelia:
+    image: authelia/authelia:latest
+    volumes:
+      - ./authelia:/config:ro
+      - authelia_data:/data
+    networks:
+      - ignis
+    restart: unless-stopped
+
+  ignis:
+    image: nobbe/ignis:latest
+    # To build from source instead, comment out `image` and uncomment:
+    # build: ../../
+    environment:
+      - OBSIDIAN_VERSION=1.13.7
+    volumes:
+      - ./vaults:/vaults
+      - ./data:/app/data
+      - obsidian-app:/app/obsidian-app
+    networks:
+      - ignis
+    restart: unless-stopped
+
+networks:
+  ignis:
+
+volumes:
+  caddy_data:
+  caddy_config:
+  authelia_data:
+  obsidian-app:

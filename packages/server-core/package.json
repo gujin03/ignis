@@ -1,0 +1,10 @@
+{
+  "name": "@ignis/server-core",
+  "version": "0.0.0-internal",
+  "private": true,
+  "main": "src/index.js",
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "ws": "^8.16.0"
+  }
+}

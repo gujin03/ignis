@@ -1,0 +1,14 @@
+{
+  "rules": {
+    "no-unused-vars": ["warn", { "args": "none" }]
+  },
+  "ignorePatterns": ["**/dist/**"],
+  "overrides": [
+    {
+      "files": ["**/*.svelte"],
+      "rules": {
+        "no-unassigned-vars": "off"
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+.git
+.gitignore
+.gitattributes
+.vscode
+.prettierrc
+investigation
+vaults
+demo-vaults
+data
+tmp
+**/dist
+apps/ignis-server/server/build-info.json

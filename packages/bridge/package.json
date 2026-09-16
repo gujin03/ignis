@@ -1,0 +1,7 @@
+{
+  "name": "@ignis/bridge",
+  "version": "0.0.0-internal",
+  "private": true,
+  "type": "module",
+  "main": "src/main.js"
+}

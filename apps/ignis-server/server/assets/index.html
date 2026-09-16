@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <title>Obsidian</title>
+  <link href="__APP_CSS_SRC__" type="text/css" rel="stylesheet"/>
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link href="assets/overrides.css" type="text/css" rel="stylesheet"/>
+  <style>
+    #ignis-status {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: #202020;
+      color: #b3b3b3;
+      font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      z-index: 9999;
+      transition: opacity 200ms ease-out;
+    }
+    #ignis-status.fade { opacity: 0; pointer-events: none; }
+    #ignis-status img {
+      width: 96px;
+      height: 96px;
+      animation: ignis-pulse 1.6s ease-in-out infinite;
+    }
+    #ignis-status-label { font-size: 13px; opacity: 0.75; }
+    @keyframes ignis-pulse {
+      0%, 100% { opacity: 0.85; transform: scale(1); }
+      50%      { opacity: 1;    transform: scale(1.04); }
+    }
+  </style>
+</head>
+<body class="theme-dark">
+<div id="ignis-status">
+  <img src="favicon.png" alt=""/>
+  <div id="ignis-status-label">Loading Obsidian...</div>
+</div>
+<!-- Ignis shims: must run before any Obsidian code. -->
+<script type="text/javascript" src="__SHIM_LOADER_SRC__"></script>
+<script type="text/javascript" src="__IGNIS_UI_SRC__"></script>
+<!-- Obsidian scripts injected dynamically to avoid touching their files. -->
+<script>
+(function () {
+  var scripts = __OBSIDIAN_SCRIPTS__;
+  var label = document.getElementById("ignis-status-label");
+  var status = document.getElementById("ignis-status");
+  var loaded = 0;
+
+  function update() {
+    if (label) {
+      label.textContent = "Loading Obsidian " + loaded + "/" + scripts.length;
+    }
+  }
+
+  function done() {
+    if (!status) return;
+    status.classList.add("fade");
+    setTimeout(function () {
+      if (status && status.parentNode) status.parentNode.removeChild(status);
+    }, 250);
+  }
+
+  function appendScripts() {
+    // No Obsidian scripts to load (markup or scrape mismatch); clear the splash instead of pulsing forever.
+    if (scripts.length === 0) {
+      done();
+      return;
+    }
+
+    update();
+
+    for (var i = 0; i < scripts.length; i++) {
+      var s = document.createElement("script");
+      s.type = "text/javascript";
+      s.src = scripts[i];
+      s.async = false;
+      s.onload = function () {
+        loaded++;
+        update();
+        if (loaded === scripts.length) done();
+      };
+      s.onerror = function () {
+        loaded++;
+        update();
+        if (loaded === scripts.length) done();
+      };
+      document.body.appendChild(s);
+    }
+  }
+
+  // Hold Obsidian's scripts until the shim signals the priority cache slice has landed (window.__ignisBootReady), so Obsidian's early config and plugin reads hit the warm cache.
+  // A timeout proceeds anyway, so a missing or never-resolving promise degrades to loading immediately instead of blocking boot.
+  var ready = window.__ignisBootReady;
+  if (!ready || typeof ready.then !== "function") {
+    appendScripts();
+    return;
+  }
+
+  var started = false;
+
+  function start() {
+    if (started) {
+      return;
+    }
+
+    started = true;
+    // Tell the shim's progress writer to stop touching the splash label now that we own it.
+    window.__ignisBootStarted = true;
+    appendScripts();
+  }
+
+  var timer = setTimeout(start, 3000);
+
+  ready.then(
+    function () {
+      clearTimeout(timer);
+      start();
+    },
+    function () {
+      clearTimeout(timer);
+      start();
+    },
+  );
+})();
+</script>
+</body>
+</html>

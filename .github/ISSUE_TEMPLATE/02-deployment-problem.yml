@@ -1,0 +1,59 @@
+name: Deployment problem
+description: "The container won't start or serve correctly: Docker, reverse proxy, auth (Authelia, ForwardAuth), NAS and network mounts (NFS, SMB), TLS."
+title: "[Deploy] "
+labels: ["bug", "deployment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Common deployment problems have fixes in [Troubleshooting](https://ignis.thiefling.com/docs/troubleshooting/).
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: What fails, and what you expected. Mention whether local access works when proxied access does not.
+      placeholder: The container restarts in a loop after start. Local LAN access works, access through the proxy hangs.
+    validations:
+      required: true
+  - type: input
+    id: image-tag
+    attributes:
+      label: Image tag
+      placeholder: nobbe/ignis:0.8.8
+    validations:
+      required: true
+  - type: input
+    id: host-platform
+    attributes:
+      label: Host OS or platform
+      placeholder: Synology DSM 7.3, Ubuntu 24.04, TrueNAS Scale
+    validations:
+      required: true
+  - type: textarea
+    id: mounts
+    attributes:
+      label: Volumes and mounts
+      description: How /vaults and /app/data are mounted. Say if any mount is NFS, SMB, rclone, or read-only.
+      placeholder: /vaults is an NFS share from a NAS, /app/data is a local folder.
+    validations:
+      required: true
+  - type: textarea
+    id: proxy-stack
+    attributes:
+      label: Reverse proxy and auth stack
+      description: Everything between the browser and the container.
+      placeholder: Cloudflare Tunnel, then Traefik with Authelia ForwardAuth. Or "none, direct LAN access".
+  - type: textarea
+    id: compose
+    attributes:
+      label: Compose file or run command
+      description: Remove any secrets before pasting.
+      render: yaml
+  - type: textarea
+    id: logs
+    attributes:
+      label: Container logs
+      description: "`docker compose logs ignis` or `docker logs <container>`, from startup through the failure."
+      render: text
+    validations:
+      required: true

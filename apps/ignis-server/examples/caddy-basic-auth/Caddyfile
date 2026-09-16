@@ -1,0 +1,11 @@
+# Replace with your domain, or use :443 for local access with a self-signed cert.
+ignis.example.com {
+	basic_auth {
+		# Username: admin
+		# Replace the hash below with your own. Generate one with:
+		#   docker run --rm caddy:2 caddy hash-password --plaintext YOUR_PASSWORD
+		admin $2a$14$REPLACE_THIS_WITH_YOUR_BCRYPT_HASH
+	}
+
+	reverse_proxy ignis:8080
+}

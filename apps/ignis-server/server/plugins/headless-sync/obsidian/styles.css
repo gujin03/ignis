@@ -1,0 +1,134 @@
+.ignis-vault-list {
+  margin: 8px 0 16px;
+}
+
+.ignis-vault-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  margin-bottom: 8px;
+}
+
+.ignis-vault-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ignis-vault-row-name {
+  font-weight: var(--font-semibold);
+  font-size: var(--font-ui-medium);
+}
+
+.ignis-vault-row-region {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+}
+
+.ignis-vault-connect-options {
+  padding: 8px 16px 16px;
+  margin-bottom: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-s) var(--radius-s);
+  margin-top: -8px;
+}
+
+.ignis-vault-connect-options .setting-item {
+  border-top: none;
+}
+
+.ignis-sync-statusbar {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.ignis-sync-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ignis-sync-spinning svg {
+  animation: ignis-spin 1s linear infinite;
+}
+
+@keyframes ignis-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ignis-sync-synced svg {
+  color: var(--color-green);
+}
+
+.ignis-sync-syncing svg {
+  color: var(--interactive-accent);
+}
+
+.ignis-sync-error svg {
+  color: var(--color-red);
+}
+
+.ignis-sync-stopped svg {
+  color: var(--text-muted);
+}
+
+.ignis-sync-popover {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
+  background: var(--background-modifier-message);
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  padding: 4px 8px;
+  border-radius: var(--radius-s);
+  white-space: nowrap;
+  box-shadow: var(--shadow-s);
+}
+
+.ignis-log-details {
+  margin-top: 16px;
+}
+
+.ignis-log-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  padding: 4px 0;
+  user-select: none;
+}
+
+.ignis-log-details summary:hover {
+  color: var(--text-normal);
+}
+
+.ignis-log-terminal {
+  background: #1a1a1a;
+  color: #d4d4d4;
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 12px;
+  border-radius: var(--radius-s);
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-top: 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.ignis-log-terminal code {
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  padding: 0;
+}

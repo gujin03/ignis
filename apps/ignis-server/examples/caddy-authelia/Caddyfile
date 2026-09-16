@@ -1,0 +1,14 @@
+# Authelia portal. Replace auth.example.com with your auth subdomain.
+auth.example.com {
+	reverse_proxy authelia:9091
+}
+
+# Ignis. Replace ignis.example.com with your domain.
+ignis.example.com {
+	forward_auth authelia:9091 {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+	}
+
+	reverse_proxy ignis:8080
+}

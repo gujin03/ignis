@@ -1,0 +1,265 @@
+.ignis-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ignis-header-logo {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.ignis-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ignis-header-title {
+  font-size: var(--font-ui-large);
+  font-weight: var(--font-semibold);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.ignis-header-subtitle {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  line-height: 1.2;
+  margin: 4px 0 0;
+}
+
+.ignis-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ignis-header-version-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.ignis-header-version {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+}
+
+.ignis-update-indicator {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  text-decoration: none;
+}
+
+.ignis-update-indicator.ignis-update-available {
+  color: var(--text-accent);
+}
+
+.ignis-update-indicator.ignis-update-available:hover {
+  text-decoration: underline;
+}
+
+.ignis-github-link {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.ignis-github-link:hover {
+  color: var(--text-normal);
+}
+
+.ignis-github-link:hover .ignis-github-icon {
+  opacity: 1;
+}
+
+.ignis-github-icon {
+  width: 32px;
+  height: 32px;
+  opacity: 0.6;
+}
+
+.ignis-insecure-callout {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(190, 150, 45, 0.55);
+  background: rgba(190, 150, 45, 0.09);
+  border-radius: 8px;
+}
+
+.ignis-insecure-callout-icon {
+  flex-shrink: 0;
+  color: var(--text-warning, #d6a935);
+}
+
+.ignis-insecure-callout-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ignis-insecure-callout-title {
+  font-weight: var(--font-semibold);
+  color: var(--text-warning, #d6a935);
+  margin-bottom: 4px;
+}
+
+.ignis-insecure-callout-body {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.ignis-block-modal p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.ignis-block-modal p:last-child {
+  margin-bottom: 0;
+}
+
+.ignis-block-modal ul {
+  margin: 0 0 14px;
+  padding-left: 22px;
+}
+
+.ignis-block-modal li {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.ignis-block-modal li:last-child {
+  margin-bottom: 0;
+}
+
+.ignis-block-modal code {
+  font-size: 0.9em;
+  background: var(--background-primary-alt);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.ignis-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.ignis-status-connected {
+  background-color: var(--color-green);
+}
+
+.ignis-status-connecting {
+  background-color: var(--color-yellow);
+}
+
+.ignis-status-disconnected {
+  background-color: var(--color-red);
+}
+
+.ignis-status-label {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+}
+
+.ignis-statusbar-item {
+  display: flex;
+  align-items: center;
+  cursor: default;
+}
+
+.ignis-statusbar-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ignis-statusbar-connected {
+  background-color: var(--color-green);
+}
+
+.ignis-statusbar-connecting {
+  background-color: var(--color-yellow);
+}
+
+.ignis-statusbar-disconnected {
+  background-color: var(--color-red);
+}
+
+.ignis-statusbar-writes-pending {
+  animation: ignis-writes-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ignis-writes-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.ignis-write-failure-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ignis-loading {
+  position: relative;
+}
+
+.ignis-loading .cm-editor,
+.ignis-loading .markdown-reading-view {
+  opacity: 0.5;
+}
+
+.ignis-loading::after {
+  content: "Loading\2026";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.ignis-plugins-description {
+  padding: 0 16px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin-bottom: 16px;
+}
+
+.ignis-list-editor {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 0 var(--size-4-3);
+  margin-bottom: var(--size-4-4);
+}
+
+.ignis-list-empty {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  padding: var(--size-4-3) 0;
+}

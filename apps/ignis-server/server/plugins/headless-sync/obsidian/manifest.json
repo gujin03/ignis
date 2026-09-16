@@ -1,0 +1,9 @@
+{
+  "id": "ignis-headless-sync",
+  "name": "Headless Sync",
+  "version": "0.3.0",
+  "minAppVersion": "1.13.0",
+  "description": "Client-side companion for server-side Obsidian Sync",
+  "author": "Ignis",
+  "isDesktopOnly": false
+}

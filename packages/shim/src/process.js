@@ -1,0 +1,20 @@
+export const processShim = {
+  platform: "linux",
+  version: "v22.20.0",
+  versions: {
+    electron: "39.8.3",
+    node: "22.20.0",
+    chrome: "142.0.0.0",
+  },
+  env: {},
+  cwd: () => "/",
+  nextTick: (fn, ...args) => setTimeout(() => fn(...args), 0),
+  argv: [],
+  type: "renderer",
+  resourcesPath: "/",
+  stdout: { write: (s) => console.log(s) },
+  stderr: { write: (s) => console.error(s) },
+  on: () => {},
+  once: () => {},
+  removeListener: () => {},
+};

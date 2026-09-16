@@ -1,0 +1,17 @@
+{
+  "name": "@ignis/ui",
+  "version": "0.0.0-internal",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "@ignis/services": "*",
+    "lucide-svelte": "^0.577.0",
+    "svelte": "^4.2.20"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "esbuild-svelte": "^0.9.4"
+  }
+}

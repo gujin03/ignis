@@ -1,0 +1,36 @@
+# Authelia minimal configuration for Ignis.
+# See https://www.authelia.com/configuration/prologue/introduction/ for full docs.
+
+# -- Replace these with random strings (e.g. openssl rand -hex 32) --
+identity_validation:
+  reset_password:
+    jwt_secret: REPLACE_WITH_A_RANDOM_SECRET
+
+server:
+  address: tcp://0.0.0.0:9091
+
+log:
+  level: info
+
+authentication_backend:
+  file:
+    path: /config/users_database.yml
+
+session:
+  cookies:
+    - domain: example.com        # Replace with your root domain
+      authelia_url: https://auth.example.com
+
+storage:
+  encryption_key: REPLACE_WITH_ANOTHER_RANDOM_SECRET
+  local:
+    path: /data/db.sqlite3
+
+notifier:
+  # For production, replace this with an SMTP block.
+  # The filesystem notifier writes password reset links to a file instead of emailing them.
+  filesystem:
+    filename: /data/notification.txt
+
+access_control:
+  default_policy: one_factor
