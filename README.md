@@ -95,6 +95,55 @@ A few design decisions worth knowing about for someone evaluating Ignis against 
 - Optional write coalescing debounces rapid writes for slow filesystems (rclone, FUSE, NFS, SMB); off unless `WRITE_COALESCE_MS` is set.
 
 The content cache size and write coalescing can both be adjusted from the [Settings](https://ignis.thiefling.com/docs/using/settings/) panel.
+
+## Development & Release
+
+Everything needed to run, build, package, and ship Ignis from source.
+
+### Local development
+
+```bash
+npm ci                      # install dependencies
+npm run dev                 # build bundles, then start the server on :8080
+# open http://localhost:8080
+```
+
+- `npm test` – unit tests (vitest)
+- `npm run lint` – oxlint + error-leak check
+- `npm run build` – esbuild bundles (shim-loader, UI, headless-sync)
+
+By default the server serves Obsidian from `investigation/obsidian_<version>_unpacked/`. Point `OBSIDIAN_ASSETS_PATH` at any extracted Obsidian directory to switch versions, or run in Docker where the entrypoint downloads it automatically (see below).
+
+### Docker image (linux/amd64)
+
+```bash
+npm run docker:build        # build host arch, load as nobbe/ignis:dev
+# multi-arch (amd64 + arm64) + push:
+node apps/ignis-server/scripts/build-image.js --push
+```
+
+Production compose template and full build guide:
+- [Production deployment](apps/ignis-server/examples/production/) – compose file with healthcheck, volumes, and hardening knobs
+- [docs/docker-build.md](docs/docker-build.md) – buildx walkthrough, verification, rollback
+
+### CI/CD
+
+Three GitHub Actions workflows live in `.github/workflows/`:
+
+| Workflow | Triggers | What it does |
+|---|---|---|
+| `ci.yml` | push/PR to main | lint, unit tests, build artifact checks |
+| `build-image.yml` | tag `v*`, manual | buildx multi-arch push to GHCR/Docker Hub |
+| `deploy.yml` | after image build, manual | SSH to prod host: `compose pull && up -d` |
+
+Release flow:
+
+```bash
+git tag v0.8.10 && git push origin v0.8.10   # CI gates, then image builds & pushes
+```
+
+End-to-end setup, secrets, and troubleshooting: [docs/ci-cd.md](docs/ci-cd.md).
+
 ## Contributing
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, especially on how to report plugin compatibility issues. Check the [open issues](https://github.com/Nystik-gh/ignis/issues) for things to work on.
