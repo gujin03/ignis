@@ -70,6 +70,31 @@ volumes:
 
 **文件权限**：Ignis 以 `PUID` 和 `PGID`（默认 1000）指定的用户和组写入文件。如果宿主机账户使用不同的 ID，需在 compose 文件中调整这两个值。
 
+### 3.1 从源码构建镜像（linux/amd64）
+
+工程内置镜像构建工具链（`apps/ignis-server/Dockerfile` + `scripts/build-image.js`），无需手动编写 Dockerfile：
+
+```bash
+# 构建本机架构并加载为 nobbe/ignis:dev
+npm run docker:build            # 等价于 node apps/ignis-server/scripts/build-image.js
+
+# 多架构（linux/amd64 + linux/arm64）构建并推送 registry
+node apps/ignis-server/scripts/build-image.js --push
+
+# 只构建单一平台 linux/amd64
+docker buildx build --builder ignis-builder --platform linux/amd64 \
+  -f apps/ignis-server/Dockerfile -t <your-image>:<version> --push .
+```
+
+构建要点：
+
+- **多阶段构建**：build 阶段用 `node:22-slim` + esbuild 产出前端产物，runtime 阶段镜像精简（不含构建工具）
+- **镜像不含 Obsidian**：首次运行由 `entrypoint.sh` 下载 `OBSIDIAN_VERSION`（默认 1.13.7）并解包到 `/app/obsidian-app`
+- **架构无关**：Dockerfile 无架构专属依赖，amd64/arm64 通用
+- **构建参数**：`IGNIS_IMAGE` 自定义镜像名、`ARG IGNIS_BUILD` 注入构建戳、`--push`/`--no-latest` 控制推送与 tag
+
+完整方案（含验证清单、CI 集成、回滚）见 **[docs/docker-build.md](./docker-build.md)**。
+
 ---
 
 ## 四、安全配置
@@ -202,4 +227,4 @@ Ignis 通过用 shim 层替换 Obsidian 的 Electron 后端来在浏览器中运
 
 ---
 
-以上内容整合自 Ignis 官方文档站点的各个页面，涵盖 Overview、Requirements、Deploy with Docker、Authentication、Remote access、Hardening、Limitations、Plugin compatibility、Server plugins、Settings、Environment variables、Roadmap 及 ARCHITECTURE.md。
+以上内容整合自 Ignis 官方文档站点的各个页面，涵盖 Overview、Requirements、Deploy with Docker、Authentication、Remote access、Hardening、Limitations、Plugin compatibility、Server plugins、Settings、Environment variables、Roadmap 及 ARCHITECTURE.md。镜像构建方案详见 [docker-build.md](./docker-build.md)。
