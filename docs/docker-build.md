@@ -117,3 +117,59 @@ jobs:
 - 镜像不含 Obsidian，`OBSIDIAN_VERSION` 环境变量可切换 Obsidian 版本（`entrypoint.sh` 通过 `.obsidian-version` stamp 检测版本变化自动重装）
 - `OBSIDIAN_PACKAGE` 环境变量支持离线安装（`.deb` / `.asar.gz` / `.asar`），受限网络下免下载
 - 回退旧镜像：`docker pull nobbe/ignis:<旧版本>` + 重新 `docker run` 即可
+
+## 六、生产部署 compose 模板
+
+仓库自带生产部署示例：**`apps/ignis-server/examples/production/`**（`docker-compose.yml` + `README.md`）。
+
+核心配置：
+
+```yaml
+services:
+  ignis:
+    image: nobbe/ignis:0.8.10        # 或用下方 build 块从源码构建
+    # build:
+    #   context: ../../..
+    #   dockerfile: apps/ignis-server/Dockerfile
+    #   args:
+    #     IGNIS_BUILD: prod
+    platform: linux/amd64            # 显式固定目标平台
+    ports: ["8080:8080"]
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - OBSIDIAN_VERSION=1.13.7
+      - AUTO_CREATE_DEFAULT=true
+      # - WS_ORIGINS=https://obsidian.example.com      # 限制 WS 来源
+      # - PROXY_ALLOW_PRIVATE_HOSTS=192.168.1.10       # 代理放行私网（SSRF 权衡）
+      # - WRITE_COALESCE_MS=0                          # 慢文件系统写合并
+      # - UV_THREADPOOL_SIZE=4                         # 大 vault 并发
+    volumes:
+      - ./vaults:/vaults             # 笔记（备份）
+      - ./data:/app/data             # 状态/令牌（备份）
+      - obsidian-app:/app/obsidian-app  # Obsidian 缓存（可重建）
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/api/version').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s             # 首启下载 Obsidian 需 1-2 分钟
+
+volumes:
+  obsidian-app:
+```
+
+使用：
+
+```bash
+cd apps/ignis-server/examples/production
+docker compose up -d
+```
+
+生产部署要点（详见示例 README）：
+- **备份** `./vaults` 与 `./data`；`obsidian-app` 可重建不备份
+- Ignis **无内置认证**，必须置于反代（`caddy-basic-auth` / `caddy-authelia` 示例）或 VPN 之后
+- 除 `localhost` 外必须 **HTTPS**，否则浏览器禁用 crypto/clipboard，Obsidian 功能受限
+- 升级：`docker compose pull`（或重新构建 push）→ `docker compose up -d`，entrypoint 自动按 `OBSIDIAN_VERSION` 重装 Obsidian
+
