@@ -95,6 +95,8 @@ curl http://localhost:8080/api/version
 
 ## 四、CI 集成（GitHub Actions 推荐做法）
 
+工程自带完整 CI/CD 工作流（`.github/workflows/`），含 CI 质量门禁、镜像构建推送、服务器部署三条流水线。详细说明见 **[docs/ci-cd.md](./ci-cd.md)**。
+
 ```yaml
 name: build-image
 on:
