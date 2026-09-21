@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const { toVaultRel } = require("@ignis/server-core");
 
 const REPO_ROOT = path.join(__dirname, "..", "..", "..");
 
@@ -89,7 +90,24 @@ module.exports = {
     return Object.keys(vaults)[0] || null;
   },
   getVaultPath(id) {
-    return vaults[id] || null;
+    return Object.prototype.hasOwnProperty.call(vaults, id) ? vaults[id] : null;
+  },
+  // { vaultId, relPath } or null
+  vaultForPath(absPath) {
+    const target = path.resolve(absPath);
+
+    for (const [vaultId, vaultPath] of Object.entries(vaults)) {
+      const base = path.resolve(vaultPath);
+
+      if (target === base || target.startsWith(base + path.sep)) {
+        return {
+          vaultId,
+          relPath: toVaultRel(path.relative(base, target)),
+        };
+      }
+    }
+
+    return null;
   },
   refreshVaults() {
     vaults = discoverVaults();
@@ -104,6 +122,13 @@ module.exports = {
   demoTimeoutMs: parseInt(process.env.DEMO_TIMEOUT_MS) || 30 * 60 * 1000,
   demoTemplateDir:
     process.env.DEMO_TEMPLATE_DIR || path.join(__dirname, "demo-template"),
+
+  // 0 = disabled
+  headlessSyncIdleRestartMs:
+    parseInt(process.env.HEADLESS_SYNC_IDLE_RESTART_MS) || 0,
+
+  devSuppressWriteFailures: process.env.DEV_SUPPRESS_WRITE_FAILURES === "true",
+  devForceReadingView: process.env.DEV_FORCE_READING_VIEW === "true",
 
   obsidianAssetsPath:
     process.env.OBSIDIAN_ASSETS_PATH ||

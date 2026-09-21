@@ -60,7 +60,7 @@ function inboundTranslator(req, res, next) {
   const sessionId = getOrCreateSession(req, res, { peek: true });
 
   if (!sessionId) {
-    return next();
+    return res.status(401).json({ error: "No demo session" });
   }
 
   touchSession(sessionId);
@@ -101,6 +101,34 @@ function rewriteVaultIdInPlace(obj, sessionId) {
       obj.name = userName;
     }
   }
+}
+
+// Rewrite the vault segment of /vault-files/<vault>/... to this session's storage name.
+function vaultFilesTranslator(req, res, next) {
+  const sessionId = getOrCreateSession(req, res, { peek: true });
+
+  if (!sessionId) {
+    return res.status(401).json({ error: "No demo session" });
+  }
+
+  const parts = req.url.split("/");
+  const vault = decodeURIComponent(parts[1] || "");
+
+  if (!vault) {
+    return next();
+  }
+
+  if (vault.startsWith("demo-")) {
+    if (tryParseUserVaultName(sessionId, vault) === null) {
+      return res.status(403).json({ error: "Vault not found" });
+    }
+
+    return next();
+  }
+
+  parts[1] = encodeURIComponent(makeStorageName(sessionId, vault));
+  req.url = parts.join("/");
+  next();
 }
 
 // filter/translate vault names in the JSON response body from storage-prefixed to user-visible
@@ -416,6 +444,7 @@ module.exports = {
   captureOriginalVaultName,
   inboundTranslator,
   outboundTranslator,
+  vaultFilesTranslator,
   vaultsPerSessionEnforcer,
   quotaEnforcer,
   proxyAllowlist,

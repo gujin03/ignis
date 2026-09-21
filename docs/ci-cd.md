@@ -38,7 +38,7 @@ tag v* ─────────► Build & push image ──► (可选) Depl
 
 ## 三、CD：构建并推送镜像（build-image.yml）
 
-**触发方式**：打版本 tag（`git tag v0.8.10 && git push --tags`）或 Actions 页面手动触发（`push` 输入设为 false 则只构建不推送）。
+**触发方式**：打版本 tag（`git tag v0.8.11 && git push --tags`）或 Actions 页面手动触发（`push` 输入设为 false 则只构建不推送）。
 
 **流程**：
 
@@ -47,7 +47,7 @@ tag v* ─────────► Build & push image ──► (可选) Depl
 3. buildx 缓存恢复（`actions/cache`，加速重复构建）
 4. 调用工程自带 `node apps/ignis-server/scripts/build-image.js --push`：
    - 构建 `linux/amd64,linux/arm64` 双架构
-   - tag = `package.json` 版本（如 `0.8.10`）+ `latest`
+   - tag = `package.json` 版本（如 `0.8.11`）+ `latest`
    - 推送 manifest list 到登录的 registry
 
 **多 registry 说明**：脚本默认推 `nobbe/ignis`（Docker Hub）。推 GHCR 需设 `IGNIS_IMAGE` 环境变量（如 `ghcr.io/<org>/ignis`）——本 workflow 的 `env.IMAGE` 当前为 `nobbe/ignis`，改推 GHCR 时同步调整。
@@ -78,9 +78,9 @@ curl -fsS http://localhost:8080/api/version
 ## 五、端到端发布流程（示例）
 
 ```bash
-# 1. 版本号（package.json 已是 0.8.10，直接打 tag）
-git tag v0.8.10
-git push origin v0.8.10
+# 1. 版本号（package.json 已是 0.8.11，直接打 tag）
+git tag v0.8.11
+git push origin v0.8.11
 #    └─ CI 先跑（同一 commit 的 push/PR 已验过质量）
 #    └─ Build & push image 触发：amd64+arm64 推送
 
@@ -90,7 +90,7 @@ cd ~/ignis
 docker compose pull
 docker compose up -d
 curl http://localhost:8080/api/version
-# → {"version":"0.8.10",...,"obsidianVersion":"1.13.7"}
+# → {"version":"0.8.11",...,"obsidianVersion":"1.13.7"}
 ```
 
 ## 六、版本与镜像命名约定
@@ -98,9 +98,9 @@ curl http://localhost:8080/api/version
 | 来源 | 值 |
 |---|---|
 | 版本来源 | `package.json` 的 `version`（必须是纯 `X.Y.Z`，`build-image.js` 会拒绝其他格式） |
-| 镜像 tag | `0.8.10`（版本）+ `latest`（最新） |
-| 构建戳 | `IGNIS_BUILD` 环境变量注入 `build-info.json` → `0.8.10+<hash>` |
-| 触发 tag | `v0.8.10`（带 `v` 前缀，workflow 匹配 `v*`） |
+| 镜像 tag | `0.8.11`（版本）+ `latest`（最新） |
+| 构建戳 | `IGNIS_BUILD` 环境变量注入 `build-info.json` → `0.8.11+<hash>` |
+| 触发 tag | `v0.8.11`（带 `v` 前缀，workflow 匹配 `v*`） |
 
 ## 七、常见问题
 

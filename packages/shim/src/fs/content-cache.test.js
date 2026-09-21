@@ -70,6 +70,33 @@ describe("ContentCache LRU eviction", () => {
     vi.restoreAllMocks();
   });
 
+  it("keeps currentBytes accurate when replacing the LRU entry evicts", () => {
+    let now = 1000;
+    vi.spyOn(Date, "now").mockImplementation(() => now++);
+
+    const cache = new ContentCache(12);
+    cache.set("a.md", "aaaa"); // 4
+    cache.set("b.md", "bbbb"); // 4
+    cache.set("c.md", "cccc"); // 4
+    cache.get("b.md");
+    cache.get("c.md");
+
+    cache.set("a.md", "aaaaa"); // 5, a.md is the LRU
+
+    expect(cache.has("a.md")).toBe(true);
+    expect(cache.has("b.md")).toBe(false);
+    expect(cache.size).toBe(2);
+    expect(cache.currentBytes).toBe(9); // c (4) + a (5)
+
+    for (let i = 0; i < 5; i++) {
+      cache.set("a.md", "aaaaa");
+    }
+
+    expect(cache.currentBytes).toBe(9);
+
+    vi.restoreAllMocks();
+  });
+
   it("entry larger than maxSize still gets stored", () => {
     const cache = new ContentCache(5);
     cache.set("small.md", "ab"); // 2

@@ -6,7 +6,8 @@ const path = require("path");
 
 const config = require("../config");
 const { watcher } = require("@ignis/server-core");
-const bootstrapRoutes = require("../routes/bootstrap");
+const bootstrapCache = require("../cache");
+const treeReconcile = require("../cache/reconcile");
 
 const {
   sessions,
@@ -40,7 +41,8 @@ async function cleanupSession(sessionId) {
       console.warn(`[demo] Failed to remove ${storageName}:`, e.message);
     }
 
-    bootstrapRoutes.invalidateVault(storageName);
+    treeReconcile.cancelVault(storageName);
+    bootstrapCache.invalidateVault(storageName);
   }
 
   config.refreshVaults();
@@ -96,7 +98,8 @@ async function cleanupExpired() {
 
       try {
         await fsp.rm(orphanPath, { recursive: true, force: true });
-        bootstrapRoutes.invalidateVault(entry.name);
+        treeReconcile.cancelVault(entry.name);
+        bootstrapCache.invalidateVault(entry.name);
         console.log(`[demo] Removed orphan ${entry.name}`);
       } catch {}
     }

@@ -1,4 +1,4 @@
-const config = require("./config");
+const config = require("../config");
 const { watcher } = require("@ignis/server-core");
 
 let wss = null;

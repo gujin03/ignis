@@ -40,7 +40,7 @@ function display(containerEl, app) {
     text:
       "Ignis plugins extend server functionality and run alongside your vaults. " +
       "They are separate from Obsidian's built-in plugins.",
-    cls: "ignis-plugins-description",
+    cls: "ignis-tab-description",
   });
 
   const loadingEl = containerEl.createEl("p", { text: "Loading plugins..." });
@@ -60,7 +60,7 @@ function display(containerEl, app) {
       const vaultId = getVaultId();
 
       for (const plugin of plugins) {
-        const enabled = plugin.enabledVaults.includes(vaultId);
+        let enabled = plugin.enabledVaults.includes(vaultId);
 
         new Setting(containerEl)
           .setName(plugin.name)
@@ -68,8 +68,13 @@ function display(containerEl, app) {
           .addToggle((toggle) => {
             toggle.setValue(enabled);
             toggle.onChange(async (value) => {
+              if (value === enabled) {
+                return;
+              }
+
               try {
                 await togglePlugin(plugin.id, value);
+                enabled = value;
 
                 new Notice(
                   `${plugin.name} ${value ? "enabled" : "disabled"} for this vault.`,

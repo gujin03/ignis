@@ -14,8 +14,8 @@ process.env.DATA_ROOT = DATA_ROOT;
 process.env.PROXY_ALLOW_PRIVATE_HOSTS = "127.0.0.1";
 
 const dns = require("dns");
-const settings = require("../settings");
-const proxyRouter = require("./proxy");
+const settings = require("../../settings");
+const proxyRouter = require("./index");
 const express = require("express");
 
 const realLookup = dns.promises.lookup;

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.11] - Karm (2026-09-19)
+
+### Added
+
+- Ignored paths: setting to exclude paths from the file watcher using gitignore patterns.
+- `Refresh vault from disk` command.
+- Per-vault setting to always trust plugins.
+- More comprehensive configuration for Headless Sync.
+- Dev flags to suppress write failure notices and force reading view.
+- `process` shim.
+
+### Changed
+
+- Vault load speed improved by incremental file events.
+- Vaults on unmonitorable file systems are periodically scanned.
+- File watcher recovers after a vault folder is remounted.
+
+### Fixed
+
+- Headless Sync sign in made more reliable.
+- Headless Sync now syncs all file types by default.
+- Headless Sync handles a frozen process better.
+
 ## [0.8.10] - Karm (2026-08-20)
 
 ### Changed

@@ -1,6 +1,6 @@
 // Coalesces boot-window writes per path so they flush in a few round-trips instead of one per save.
 
-import { markLocalOp } from "./echo-guard.js";
+import { markSentOp } from "./echo-guard.js";
 import { trackWrite } from "./write-durability.js";
 
 const QUIET_MS = 100; // flush a path this long after its last write
@@ -45,7 +45,7 @@ export function initWriteCoalescer(t) {
 }
 
 function performWrite(path, data, encoding, onResult) {
-  markLocalOp(path);
+  markSentOp(path);
   const track = trackWrite(path);
 
   return transport.writeFile(path, data, encoding).then(

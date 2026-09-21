@@ -1,5 +1,10 @@
 const auth = require("./auth");
-const obCli = require("./ob-cli");
+const obCli = require("../../obsidian-account/ob-cli");
+const { invalidConfigReason } = require("./sync-manager");
+const { SYNC_MODES, keysOf } = require("./sync-options");
+
+const SYNC_MODE_KEYS = keysOf(SYNC_MODES);
+const MAX_LOG_LIMIT = 2000;
 const { sanitizeError } = require("@ignis/server-core");
 
 function mountRoutes(router, plugin) {
@@ -27,7 +32,11 @@ function mountRoutes(router, plugin) {
     }
 
     try {
-      auth.saveToken(ctx.dataDir, { token, email: email || null, name: name || null });
+      auth.saveToken(ctx.dataDir, {
+        token,
+        email: email || null,
+        name: name || null,
+      });
       ctx.log(`Auth token saved${email ? ` for ${email}` : ""}`);
       res.json({ success: true });
     } catch (e) {
@@ -52,10 +61,23 @@ function mountRoutes(router, plugin) {
   router.post("/setup", async (req, res) => {
     const ctx = plugin.getCtx();
     const syncManager = plugin.getSyncManager();
-    const { vaultId, remoteVault, remoteVaultName, vaultPassword, deviceName, mode } = req.body;
+    const {
+      vaultId,
+      remoteVault,
+      remoteVaultName,
+      vaultPassword,
+      deviceName,
+      mode,
+    } = req.body;
 
     if (!vaultId || !remoteVault) {
-      return res.status(400).json({ error: "vaultId and remoteVault are required" });
+      return res
+        .status(400)
+        .json({ error: "vaultId and remoteVault are required" });
+    }
+
+    if (mode !== undefined && !SYNC_MODE_KEYS.includes(mode)) {
+      return res.status(400).json({ error: `Unknown sync mode: ${mode}` });
     }
 
     if (!auth.isAuthenticated(ctx.dataDir)) {
@@ -68,13 +90,24 @@ function mountRoutes(router, plugin) {
       return res.status(404).json({ error: "Vault not found" });
     }
 
+    if (!ctx.getEnabledVaults().includes(vaultId)) {
+      return res
+        .status(403)
+        .json({ error: "Headless Sync is not enabled for this vault" });
+    }
+
     try {
-      const state = await syncManager.setupSync(vaultId, vaultPath, remoteVault, {
-        remoteVaultName,
-        vaultPassword,
-        deviceName,
-        mode,
-      });
+      const state = await syncManager.setupSync(
+        vaultId,
+        vaultPath,
+        remoteVault,
+        {
+          remoteVaultName,
+          vaultPassword,
+          deviceName,
+          mode,
+        },
+      );
 
       res.json({ success: true, state });
     } catch (e) {
@@ -83,7 +116,40 @@ function mountRoutes(router, plugin) {
     }
   });
 
-  router.post("/start", (req, res) => {
+  router.post("/config", async (req, res) => {
+    const ctx = plugin.getCtx();
+    const syncManager = plugin.getSyncManager();
+    const { vaultId, fileTypes, configs, excludedFolders, mode } = req.body;
+
+    if (!vaultId) {
+      return res.status(400).json({ error: "vaultId is required" });
+    }
+
+    const config = { fileTypes, configs, excludedFolders, mode };
+    const reason = invalidConfigReason(config);
+
+    if (reason) {
+      return res.status(400).json({ error: reason });
+    }
+
+    if (!syncManager.getState(vaultId)) {
+      return res.status(404).json({ error: "Vault is not linked to sync" });
+    }
+
+    try {
+      const { state, restarted } = await syncManager.configureSync(
+        vaultId,
+        config,
+      );
+
+      res.json({ success: true, state, restarted });
+    } catch (e) {
+      ctx.log(`Failed to configure sync: ${e.message}`);
+      res.status(500).json(sanitizeError(e));
+    }
+  });
+
+  router.post("/start", async (req, res) => {
     const ctx = plugin.getCtx();
     const syncManager = plugin.getSyncManager();
     const { vaultId } = req.body;
@@ -93,7 +159,7 @@ function mountRoutes(router, plugin) {
     }
 
     try {
-      const state = syncManager.startSync(vaultId);
+      const state = await syncManager.startSync(vaultId);
       res.json({ success: true, state });
     } catch (e) {
       ctx.log(`Failed to start sync: ${e.message}`);
@@ -145,7 +211,12 @@ function mountRoutes(router, plugin) {
       return res.status(400).json({ error: "vaultId is required" });
     }
 
-    const logs = syncManager.getLogs(vaultId, limit ? parseInt(limit) : 100);
+    const requested = Number.parseInt(limit, 10);
+    const count =
+      Number.isInteger(requested) && requested > 0
+        ? Math.min(requested, MAX_LOG_LIMIT)
+        : 100;
+    const logs = syncManager.getLogs(vaultId, count);
     res.json({ logs });
   });
 
@@ -156,6 +227,7 @@ function mountRoutes(router, plugin) {
 
   router.post("/create-remote-vault", async (req, res) => {
     const ctx = plugin.getCtx();
+    const syncManager = plugin.getSyncManager();
     const { name, encryption, password, region } = req.body;
 
     if (!name) {
@@ -166,22 +238,12 @@ function mountRoutes(router, plugin) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    const args = ["sync-create-remote", "--name", name];
-
-    if (encryption) {
-      args.push("--encryption", encryption);
-    }
-
-    if (password) {
-      args.push("--password", password);
-    }
-
-    if (region) {
-      args.push("--region", region);
-    }
-
     try {
-      await obCli.runCommand(args);
+      await syncManager.createRemoteVault(name, {
+        encryption,
+        password,
+        region,
+      });
       ctx.log(`Created remote vault: ${name}`);
       res.json({ success: true });
     } catch (e) {

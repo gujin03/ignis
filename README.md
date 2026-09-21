@@ -85,16 +85,19 @@ See the [documentation](https://ignis.thiefling.com/docs/) for the full feature 
 ## Limitations
 
 Running Obsidian in a browser means some Electron and Node capabilities have no equivalent, so certain plugins and features are limited or unavailable. See [Limitations](https://ignis.thiefling.com/docs/using/limitations/) and [Plugin compatibility](https://ignis.thiefling.com/docs/using/plugin-compatibility/) for details.
+
 ## Performance
 
 A few design decisions worth knowing about for someone evaluating Ignis against large vaults or slow storage:
 
 - A pre-compressed bootstrap response delivers vault info, vault list, metadata tree, and plugin list in a single call.
+- The vault file tree is kept up to date by live file events.
 - Indexer pre-fetch warms the content cache so Obsidian's startup index hits cache instead of the network.
 - An LRU content cache (50 MB by default) keeps memory use bounded regardless of vault size, so Ignis doesn't hold the whole vault in memory.
+- Paths can be excluded from file watching to reduce watcher load on large vaults.
 - Optional write coalescing debounces rapid writes for slow filesystems (rclone, FUSE, NFS, SMB); off unless `WRITE_COALESCE_MS` is set.
 
-The content cache size and write coalescing can both be adjusted from the [Settings](https://ignis.thiefling.com/docs/using/settings/) panel.
+See [Settings](https://ignis.thiefling.com/docs/using/settings/) for more in-depth descriptions.
 
 ## Development & Release
 
@@ -139,7 +142,7 @@ Three GitHub Actions workflows live in `.github/workflows/`:
 Release flow:
 
 ```bash
-git tag v0.8.10 && git push origin v0.8.10   # CI gates, then image builds & pushes
+git tag v0.8.11 && git push origin v0.8.11   # CI gates, then image builds & pushes
 ```
 
 End-to-end setup, secrets, and troubleshooting: [docs/ci-cd.md](docs/ci-cd.md).

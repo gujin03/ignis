@@ -11,6 +11,7 @@ const {
   captureOriginalVaultName,
   inboundTranslator,
   outboundTranslator,
+  vaultFilesTranslator,
   vaultsPerSessionEnforcer,
   quotaEnforcer,
   proxyAllowlist,
@@ -56,6 +57,8 @@ function setupDemo(app) {
 
   // Outbound: filter vault lists and strip prefixes from responses
   app.use(["/api/vault", "/api/fs", "/api/bootstrap"], outboundTranslator);
+
+  app.use("/vault-files", vaultFilesTranslator);
 
   // quota enforcement
   app.use("/api/vault", vaultsPerSessionEnforcer);

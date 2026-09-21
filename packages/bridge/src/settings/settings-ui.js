@@ -1,4 +1,4 @@
-import { setIcon } from "obsidian";
+import { Setting, Notice, setIcon } from "obsidian";
 
 function createNavEl(tab, setting) {
   const nav = document.createElement("div");
@@ -10,7 +10,11 @@ function createNavEl(tab, setting) {
 
     if (tab.icon.startsWith("<svg") || tab.icon.startsWith("<img")) {
       iconEl.innerHTML = tab.icon;
-    } else if (tab.icon.endsWith(".svg") || tab.icon.endsWith(".webp") || tab.icon.endsWith(".png")) {
+    } else if (
+      tab.icon.endsWith(".svg") ||
+      tab.icon.endsWith(".webp") ||
+      tab.icon.endsWith(".png")
+    ) {
       iconEl.innerHTML = `<img src="${tab.icon}" class="svg-icon" width="24" height="24" />`;
     } else {
       setIcon(iconEl, tab.icon);
@@ -79,6 +83,16 @@ function createGroup(name) {
   return { group, items };
 }
 
+function createSettingGroup(containerEl, heading) {
+  const group = containerEl.createDiv("setting-group");
+
+  if (heading) {
+    new Setting(group).setName(heading).setHeading();
+  }
+
+  return group.createDiv("setting-items");
+}
+
 function findGroupByTitle(tabHeadersEl, title) {
   const groups = tabHeadersEl.querySelectorAll(".vertical-tab-header-group");
 
@@ -93,4 +107,32 @@ function findGroupByTitle(tabHeadersEl, title) {
   return null;
 }
 
-export { createNavEl, createTab, createGroup, findGroupByTitle };
+async function saveSetting(partial) {
+  try {
+    const res = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(partial),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.error || "Save failed");
+    }
+
+    return data;
+  } catch (e) {
+    new Notice(`Failed to save setting: ${e.message}`);
+    return false;
+  }
+}
+
+export {
+  createNavEl,
+  createTab,
+  createGroup,
+  createSettingGroup,
+  findGroupByTitle,
+  saveSetting,
+};

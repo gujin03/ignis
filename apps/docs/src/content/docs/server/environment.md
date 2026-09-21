@@ -17,7 +17,7 @@ Configure the server through environment variables, set in the `environment:` bl
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `OBSIDIAN_VERSION` | `1.13.7` | Obsidian version fetched on first run. Each release pins a known-good version. |
+| `OBSIDIAN_VERSION` | `1.12.7` | Obsidian version fetched on first run. Each release pins a known-good version. |
 | `OBSIDIAN_PACKAGE` | unset | Path to a pre-placed Obsidian package (`.deb`, `.asar.gz`, or `.asar`) to unpack instead of downloading, for offline installs. |
 | `OBSIDIAN_ASSETS_PATH` | `/app/obsidian-app` | Where the extracted Obsidian files live. Point it at a pre-extracted directory to skip the download. |
 
@@ -50,6 +50,24 @@ For example:
 | `AUTO_CREATE_DEFAULT` | `false` | Create a "My Vault" vault on startup when none exist. |
 | `WRITE_COALESCE_MS` | `0` | Debounce window in milliseconds for rapid writes. Raise it on slow filesystems such as rclone, NFS, or SMB. Max 60000. |
 | `UV_THREADPOOL_SIZE` | `4` | Node variable controlling how many file operations Ignis can run concurrently. Raising it helps with large vaults on network filesystems. |
+| `IGNORED_PATHS` | none | Comma-separated gitignore patterns Ignis does not watch or track, added to the rule sets from Settings. See [Performance](/docs/performance/#ignored-paths). |
+
+## Headless Sync
+
+Applies to the [Headless Sync](/docs/using/server-plugins/) server plugin.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `HEADLESS_SYNC_IDLE_RESTART_MS` | `0` | Precautionary idle check. Since there is no output difference between an idle and a frozen sync process, this timeout can be used to force regular restarts of the sync process. Disabled when set to `0`. |
+
+## Dev flags
+
+Experimental switches that may change or disappear in later releases. They exist for vaults mounted read-only at the filesystem level (a `:ro` volume); Ignis does not enforce write protection itself. See [Read-only vaults](/docs/server/deploy/#read-only-vaults).
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `DEV_SUPPRESS_WRITE_FAILURES` | `false` | Hide the notices Ignis shows when a save fails. Writes are still attempted and still fail. |
+| `DEV_FORCE_READING_VIEW` | `false` | Open every note in reading view and prevent changing the view mode. |
 
 ---
 

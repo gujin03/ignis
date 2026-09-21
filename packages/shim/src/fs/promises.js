@@ -1,4 +1,4 @@
-import { markLocalOp } from "./echo-guard.js";
+import { markSentOp } from "./echo-guard.js";
 import {
   bufferWrite,
   cancelPending,
@@ -205,7 +205,7 @@ export function createFsPromises(metadataCache, contentCache, transport) {
     async appendFile(path, data, encoding) {
       const resolved = resolvePath(path);
 
-      markLocalOp(resolved);
+      markSentOp(resolved);
       contentCache.invalidate(resolved);
 
       await transport.appendFile(resolved, data);
@@ -217,7 +217,7 @@ export function createFsPromises(metadataCache, contentCache, transport) {
     async unlink(path) {
       const resolved = resolvePath(path);
 
-      markLocalOp(resolved);
+      markSentOp(resolved);
       contentCache.delete(resolved);
       metadataCache.delete(resolved);
 
@@ -228,16 +228,19 @@ export function createFsPromises(metadataCache, contentCache, transport) {
       const resolvedOld = resolvePath(oldPath);
       const resolvedNew = resolvePath(newPath);
 
-      markLocalOp(resolvedOld);
-      markLocalOp(resolvedNew);
+      markSentOp(resolvedOld);
+      markSentOp(resolvedNew);
+
+      for (const key of metadataCache.rename(resolvedOld, resolvedNew)) {
+        contentCache.delete(key);
+      }
+
       const content = contentCache.get(resolvedOld);
 
       if (content !== null) {
         contentCache.set(resolvedNew, content);
         contentCache.delete(resolvedOld);
       }
-
-      metadataCache.rename(resolvedOld, resolvedNew);
 
       await transport.rename(resolvedOld, resolvedNew);
     },
@@ -248,7 +251,7 @@ export function createFsPromises(metadataCache, contentCache, transport) {
 
       const resolved = resolvePath(path);
 
-      markLocalOp(resolved);
+      markSentOp(resolved);
       metadataCache.set(resolved, { type: "directory" });
 
       await transport.mkdir(resolved, recursive);
@@ -257,7 +260,7 @@ export function createFsPromises(metadataCache, contentCache, transport) {
     async rmdir(path) {
       const resolved = resolvePath(path);
 
-      markLocalOp(resolved);
+      markSentOp(resolved);
       metadataCache.delete(resolved);
       await transport.rmdir(resolved);
     },
@@ -268,7 +271,7 @@ export function createFsPromises(metadataCache, contentCache, transport) {
 
       const resolved = resolvePath(path);
 
-      markLocalOp(resolved);
+      markSentOp(resolved);
       metadataCache.delete(resolved);
       contentCache.delete(resolved);
 
@@ -278,7 +281,7 @@ export function createFsPromises(metadataCache, contentCache, transport) {
     async copyFile(src, dest) {
       const resolvedDest = resolvePath(dest);
 
-      markLocalOp(resolvedDest);
+      markSentOp(resolvedDest);
       await transport.copyFile(src, resolvedDest);
 
       const meta = await transport.stat(resolvedDest);

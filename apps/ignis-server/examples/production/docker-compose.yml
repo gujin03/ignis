@@ -1,7 +1,7 @@
 services:
   ignis:
     # Pull a prebuilt image (recommended for production):
-    image: nobbe/ignis:0.8.10
+    image: nobbe/ignis:0.8.11
     # Or build from source instead: comment out `image` and uncomment the build block:
     # build:
     #   context: ../../..

@@ -48,7 +48,7 @@ export const vaultService = {
       body: JSON.stringify({ name }),
     });
 
-    this._setVaultTrust(name);
+    this.setVaultTrust(name);
 
     return this.listVaults();
   },
@@ -65,6 +65,14 @@ export const vaultService = {
     }
 
     return true;
+  },
+
+  async refreshVault(id) {
+    return fetchJson(API_BASE + "/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vault: id }),
+    });
   },
 
   async renameVault(id, newName) {
@@ -123,7 +131,7 @@ export const vaultService = {
     target.location.href = "/?vault=" + encodeURIComponent(id);
   },
 
-  _setVaultTrust(vaultId, trusted = true) {
+  setVaultTrust(vaultId, trusted = true) {
     localStorage.setItem("enable-plugin-" + vaultId, String(trusted));
   },
 

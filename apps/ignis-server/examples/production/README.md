@@ -5,7 +5,7 @@ A minimal production template: one Ignis container pinned to `linux/amd64`, pers
 ## Prerequisites
 
 - Docker + Docker Compose on a linux/amd64 host (or a VM/CI that produced the image; see [docs/docker-build.md](../../../docs/docker-build.md))
-- A prebuilt image, either pulled (`nobbe/ignis:0.8.10`) or built from source
+- A prebuilt image, either pulled (`nobbe/ignis:0.8.11`) or built from source
 
 ## Running it
 

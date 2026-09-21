@@ -2,14 +2,22 @@ const express = require("express");
 const fs = require("fs");
 const config = require("../config");
 const path = require("path");
-const bootstrapRoutes = require("./bootstrap");
-const { withWatcherStopped } = require("../vault-lifecycle");
+const bootstrapCache = require("../cache");
+const settings = require("../settings");
+const treeReconcile = require("../cache/reconcile");
+const { withWatcherStopped } = require("../vault/lifecycle");
 const { sanitizeError } = require("@ignis/server-core");
 
 const router = express.Router();
 
 // Vault names become directories under VAULT_ROOT; reject traversal, hidden, and reserved-device names.
 const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
+
+// skip a refresh shortly after the last refresh
+const REFRESH_COOLDOWN_MS = 10 * 1000;
+
+// vaultId -> time of the last manual refresh
+const lastRefreshAt = new Map();
 
 function isValidVaultName(name) {
   if (typeof name !== "string" || name.length === 0 || name.length > 255) {
@@ -49,13 +57,38 @@ router.get("/info", async (req, res) => {
     return res.status(404).json({ error: "Vault not found", id: vaultId });
   }
 
-  res.json({
-    id: vaultId,
-    name: vaultId,
-    path: vaultPath,
-    platform: process.platform,
-    version: config.obsidianVersion,
-  });
+  res.json(bootstrapCache.buildVaultInfo(vaultId, vaultPath));
+});
+
+// POST /api/vault/refresh { vault } - reconcile the whole vault against disk, including ignored paths
+router.post("/refresh", async (req, res) => {
+  const vault = req.body?.vault;
+
+  if (!config.getVaultPath(vault)) {
+    return res.status(404).json({ error: "Vault not found" });
+  }
+
+  if (Date.now() - (lastRefreshAt.get(vault) || 0) < REFRESH_COOLDOWN_MS) {
+    return res
+      .status(429)
+      .json({ error: "Vault was refreshed a moment ago, try again shortly" });
+  }
+
+  lastRefreshAt.set(vault, Date.now());
+
+  try {
+    const result = await bootstrapCache.reconcileVault(vault, {
+      includeIgnored: true,
+    });
+
+    if (!result) {
+      return res.json({ ok: true, reconciled: false, drifted: false });
+    }
+
+    res.json({ ok: true, reconciled: true, drifted: result.drifted });
+  } catch (e) {
+    res.status(500).json(sanitizeError(e));
+  }
 });
 
 // POST /api/vault/create { name } - create a new vault in VAULT_ROOT
@@ -75,7 +108,7 @@ router.post("/create", async (req, res) => {
     });
 
     config.refreshVaults();
-    bootstrapRoutes.invalidateVault(name);
+    bootstrapCache.invalidateVault(name);
 
     res.json({ ok: true, id: name, path: vaultPath });
   } catch (e) {
@@ -119,8 +152,20 @@ router.post("/rename", async (req, res) => {
     );
 
     config.refreshVaults();
-    bootstrapRoutes.invalidateVault(vaultId);
-    bootstrapRoutes.invalidateVault(newName);
+
+    const trustedVaults = settings.get("trustedVaults");
+
+    if (trustedVaults.includes(vaultId)) {
+      settings.update({
+        trustedVaults: trustedVaults.map((id) =>
+          id === vaultId ? newName : id,
+        ),
+      });
+    }
+
+    treeReconcile.cancelVault(vaultId);
+    bootstrapCache.invalidateVault(vaultId);
+    bootstrapCache.invalidateVault(newName);
 
     res.json({ ok: true, id: newName, path: newPath });
   } catch (e) {
@@ -149,7 +194,17 @@ router.delete("/remove", async (req, res) => {
     );
 
     config.refreshVaults();
-    bootstrapRoutes.invalidateVault(vaultId);
+
+    const trustedVaults = settings.get("trustedVaults");
+
+    if (trustedVaults.includes(vaultId)) {
+      settings.update({
+        trustedVaults: trustedVaults.filter((id) => id !== vaultId),
+      });
+    }
+
+    treeReconcile.cancelVault(vaultId);
+    bootstrapCache.invalidateVault(vaultId);
 
     res.json({ ok: true });
   } catch (e) {

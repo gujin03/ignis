@@ -1,7 +1,7 @@
 name: Build & push image
 
 # Pushes the multi-arch image (linux/amd64 + linux/arm64) when a version tag
-# like v0.8.10 is created. Uses the repo's own build-image.js wrapper, which
+# like v0.8.11 is created. Uses the repo's own build-image.js wrapper, which
 # reads the tag-matching version from package.json and drives buildx.
 
 on:

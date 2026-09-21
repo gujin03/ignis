@@ -20,3 +20,7 @@ Ignis reads query parameters when the page loads. They combine: `/?vault=Work&fi
 **`file`** opens a note once the vault has loaded. The value is the note's vault path, URL-encoded. The `.md` extension can be left off, and a bare note name resolves the way a wiki link does.
 
 The right-click menu on a note has an "as Ignis URL" option that copies a full link with the vault and file filled in.
+
+## Refreshing the vault from disk
+
+The `Refresh vault from disk` command picks up external changes not tracked by Ignis, such as edits made on another machine to a vault on a network share.

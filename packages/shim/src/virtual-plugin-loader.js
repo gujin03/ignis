@@ -48,24 +48,12 @@ export async function extractObsidianModule() {
   }
 
   await waitForApp();
+  // wait for obsidian to handle trust prompt
+  await new Promise((resolve) => window.app.workspace.onLayoutReady(resolve));
 
   const plugins = window.app.plugins;
-
-  // loadPlugin gates on isEnabled(). Force-enable, restore on cleanup.
-  const wasEnabled = plugins.isEnabled();
-  let toggledOn = false;
-
-  if (!wasEnabled) {
-    try {
-      await plugins.setEnable(true);
-      toggledOn = true;
-    } catch (e) {
-      console.warn(
-        "[ignis] could not enable community plugins for extractor:",
-        e,
-      );
-    }
-  }
+  // patch to true to load probe in isolation. Leaves Obsidian state alone.
+  plugins.isEnabled = () => true;
 
   setVirtualFile(EXTRACTOR_PATH, EXTRACTOR_SRC);
   plugins.manifests[EXTRACTOR_ID] = EXTRACTOR_MANIFEST;
@@ -82,15 +70,10 @@ export async function extractObsidianModule() {
     await plugins.unloadPlugin(EXTRACTOR_ID);
   } catch {}
 
+  delete plugins.isEnabled;
   delete plugins.manifests[EXTRACTOR_ID];
   removeVirtualFile(EXTRACTOR_PATH);
   delete window.__ignisCapturedObsidian;
-
-  if (toggledOn) {
-    try {
-      await plugins.setEnable(false);
-    } catch {}
-  }
 
   if (!captured) {
     console.error("[ignis] obsidian module extraction failed");

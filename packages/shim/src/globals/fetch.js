@@ -1,5 +1,12 @@
 import { isSameOrigin, isDirectFetchHost } from "../util/url.js";
 import { proxyFetch } from "../util/proxy.js";
+import { desktopHeaders } from "../util/desktop-identity.js";
+
+function hasHeader(headers, name) {
+  return Object.keys(headers).some(
+    (key) => key.toLowerCase() === name.toLowerCase(),
+  );
+}
 
 export function installFetchShim() {
   const originalFetch = window.fetch.bind(window);
@@ -42,12 +49,10 @@ export function installFetchShim() {
       });
     }
 
-    // Mimic the real Obsidian desktop app headers for cross-origin requests
-    if (!headers["user-agent"] && !headers["User-Agent"]) {
-      headers["user-agent"] = navigator.userAgent;
-    }
-    if (!headers["origin"] && !headers["Origin"]) {
-      headers["origin"] = "app://obsidian.md";
+    for (const [name, value] of Object.entries(desktopHeaders())) {
+      if (!hasHeader(headers, name)) {
+        headers[name] = value;
+      }
     }
 
     let body = null;

@@ -190,4 +190,68 @@ describe("MetadataCache rename", () => {
     expect(cache.has("x")).toBe(false);
     expect(cache.get("y/z")).toBe(meta);
   });
+
+  it("rename over a directory clears what the destination held", () => {
+    const cache = new MetadataCache();
+    const moving = { type: "file", size: 1 };
+    cache.set("src", { type: "directory" });
+    cache.set("src/note.md", moving);
+    cache.set("dst", { type: "directory" });
+    cache.set("dst/old.md", { type: "file", size: 2 });
+    cache.set("dst/deep/older.md", { type: "file", size: 3 });
+
+    cache.rename("src", "dst");
+
+    expect(cache.keys().sort()).toEqual(["dst", "dst/note.md"]);
+    expect(cache.get("dst/note.md")).toBe(moving);
+  });
+
+  it("rename onto itself leaves the subtree in place", () => {
+    const cache = new MetadataCache();
+    const meta = { type: "file", size: 1 };
+    cache.set("a", { type: "directory" });
+    cache.set("a/b.md", meta);
+
+    cache.rename("a", "a");
+
+    expect(cache.get("a/b.md")).toBe(meta);
+  });
+});
+
+describe("MetadataCache deleteSubtree", () => {
+  it("removes a directory with everything under it and reports the keys", () => {
+    const cache = new MetadataCache();
+    cache.set("d", { type: "directory" });
+    cache.set("d/one.md", { type: "file", size: 1 });
+    cache.set("d/sub", { type: "directory" });
+    cache.set("d/sub/two.md", { type: "file", size: 2 });
+    cache.set("keep.md", { type: "file", size: 3 });
+
+    const removed = cache.deleteSubtree("d");
+
+    expect(removed.sort()).toEqual(["d", "d/one.md", "d/sub", "d/sub/two.md"]);
+    expect(cache.keys()).toEqual(["keep.md"]);
+  });
+
+  it("leaves a sibling whose name extends the path", () => {
+    const cache = new MetadataCache();
+    cache.set("notes", { type: "directory" });
+    cache.set("notes-archive", { type: "directory" });
+    cache.set("notes-archive/a.md", { type: "file", size: 1 });
+
+    cache.deleteSubtree("notes");
+
+    expect(cache.keys().sort()).toEqual([
+      "notes-archive",
+      "notes-archive/a.md",
+    ]);
+  });
+
+  it("reports nothing for a path the cache never held", () => {
+    const cache = new MetadataCache();
+    cache.set("a.md", { type: "file", size: 1 });
+
+    expect(cache.deleteSubtree("nope")).toEqual([]);
+    expect(cache.has("a.md")).toBe(true);
+  });
 });

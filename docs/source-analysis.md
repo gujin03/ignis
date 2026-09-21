@@ -1,4 +1,4 @@
-# Ignis 0.8.10 源码全面分析
+# Ignis 0.8.11 源码全面分析
 
 > 生成时间：2026-09-16 · 分析范围：monorepo 全部源码（apps/ignis-server、packages/{server-core,services,shim,bridge,ui}、apps/docs）
 

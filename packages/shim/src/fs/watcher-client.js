@@ -1,10 +1,11 @@
 // Bridges WebSocket file events to the fs shim's metadata/content caches and fs.watch listeners.
 // The WebSocket itself is owned by ws-client.js; this module is a consumer.
 
-import { isRecentLocalOp } from "./echo-guard.js";
+import { isRecentSentOp, sentOpCount } from "./echo-guard.js";
 import { normalize } from "../util/path.js";
 
 const RESYNC_DEBOUNCE_MS = 1000;
+const METADATA_CHANNEL = "metadata";
 
 export function createWatcherClient(
   metadataCache,
@@ -16,8 +17,8 @@ export function createWatcherClient(
   function handleCreated(msg) {
     const { path, stat } = msg;
 
-    if (!path || isRecentLocalOp(path)) {
-      return;
+    if (!path || isRecentSentOp(path)) {
+      return false;
     }
 
     if (stat) {
@@ -31,24 +32,28 @@ export function createWatcherClient(
 
     contentCache.invalidate(path);
     fsWatch._dispatch("created", path);
+
+    return true;
   }
 
   function handleFolderCreated(msg) {
     const { path } = msg;
 
-    if (!path || isRecentLocalOp(path)) {
-      return;
+    if (!path || isRecentSentOp(path)) {
+      return false;
     }
 
     metadataCache.set(path, { type: "directory" });
     fsWatch._dispatch("folder-created", path);
+
+    return true;
   }
 
   function handleModified(msg) {
     const { path, stat } = msg;
 
-    if (!path || isRecentLocalOp(path)) {
-      return;
+    if (!path || isRecentSentOp(path)) {
+      return false;
     }
 
     if (stat) {
@@ -62,33 +67,62 @@ export function createWatcherClient(
 
     contentCache.invalidate(path);
     fsWatch._dispatch("modified", path);
+
+    return true;
   }
 
   function handleDeleted(msg) {
     const { path } = msg;
 
-    if (!path || isRecentLocalOp(path)) {
-      return;
+    if (!path || isRecentSentOp(path)) {
+      return false;
     }
 
-    metadataCache.delete(path);
-    contentCache.invalidate(path);
-    fsWatch._dispatch("deleted", path);
+    if (!metadataCache.has(path)) {
+      return false;
+    }
+
+    const meta = metadataCache.get(path);
+    let removed;
+
+    if (meta && meta.type === "directory") {
+      removed = metadataCache.deleteSubtree(path);
+    } else {
+      metadataCache.delete(path);
+      removed = [path];
+    }
+
+    for (const key of removed) {
+      contentCache.invalidate(key);
+      fsWatch._dispatch("deleted", key);
+    }
+
+    return true;
   }
 
-  wsClient.subscribe("created", handleCreated);
-  wsClient.subscribe("folder-created", handleFolderCreated);
-  wsClient.subscribe("modified", handleModified);
-  wsClient.subscribe("deleted", handleDeleted);
+  let appliedEvents = 0;
 
-  let treeRevision = null;
+  function fromSocket(handler) {
+    return (msg) => {
+      if (handler(msg)) {
+        appliedEvents++;
+      }
+    };
+  }
 
-  function setTreeRevision(rev) {
-    treeRevision = rev;
+  wsClient.subscribe("created", fromSocket(handleCreated));
+  wsClient.subscribe("folder-created", fromSocket(handleFolderCreated));
+  wsClient.subscribe("modified", fromSocket(handleModified));
+  wsClient.subscribe("deleted", fromSocket(handleDeleted));
+
+  let treeEtag = null;
+
+  function setTreeEtag(etag) {
+    treeEtag = etag;
   }
 
   // Diffs a full server tree against the cache; each delta goes through the file watcher event handlers.
-  function reconcile(tree) {
+  function reconcile(tree, pruneMissing = true) {
     const fresh = new Set(Object.keys(tree).map(normalize));
 
     for (const [path, meta] of Object.entries(tree)) {
@@ -114,6 +148,10 @@ export function createWatcherClient(
       }
     }
 
+    if (!pruneMissing) {
+      return;
+    }
+
     // A cache key absent from the fresh tree was deleted while disconnected.
     // The empty root key is preserved because the tree never lists it.
     for (const key of metadataCache.keys()) {
@@ -126,10 +164,12 @@ export function createWatcherClient(
   }
 
   async function resync() {
+    const appliedBefore = appliedEvents;
+    const sentOpsBefore = sentOpCount();
     let result;
 
     try {
-      result = await transport.fetchTree(treeRevision);
+      result = await transport.fetchTree(treeEtag);
     } catch (e) {
       console.warn("[shim:fs] tree resync failed:", e);
       return;
@@ -139,8 +179,12 @@ export function createWatcherClient(
       return;
     }
 
-    treeRevision = result.etag;
-    reconcile(result.tree);
+    treeEtag = result.etag;
+
+    const cacheUnchanged =
+      appliedEvents === appliedBefore && sentOpCount() === sentOpsBefore;
+
+    reconcile(result.tree, cacheUnchanged);
   }
 
   // Coalesce a burst of opens into a single resync once the socket settles.
@@ -159,6 +203,16 @@ export function createWatcherClient(
 
   wsClient.onOpen(scheduleResync);
 
+  const metadataChannel = wsClient.channel(METADATA_CHANNEL);
+
+  metadataChannel.subscribe("revision", (msg) => {
+    treeEtag = msg.etag;
+  });
+
+  metadataChannel.subscribe("replaced", () => {
+    scheduleResync();
+  });
+
   function connect(vaultId) {
     wsClient.connect(vaultId);
   }
@@ -170,7 +224,6 @@ export function createWatcherClient(
   return {
     connect,
     disconnect,
-    reconcile,
-    setTreeRevision,
+    setTreeEtag,
   };
 }

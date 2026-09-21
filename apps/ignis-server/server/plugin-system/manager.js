@@ -81,6 +81,10 @@ async function shutdownPlugins() {
   console.log("[plugins] All plugins shut down");
 }
 
+function getPluginDataDir(dataRoot, pluginId) {
+  return path.join(dataRoot, "plugins", pluginId);
+}
+
 async function loadPlugin(pluginId) {
   if (loadedPlugins.has(pluginId)) {
     return;
@@ -93,7 +97,7 @@ async function loadPlugin(pluginId) {
   }
 
   const plugin = discovered.module;
-  const dataDir = path.join(serverCtx.config.dataRoot, "plugins", pluginId);
+  const dataDir = getPluginDataDir(serverCtx.config.dataRoot, pluginId);
 
   await fs.promises.mkdir(dataDir, { recursive: true });
 
@@ -290,6 +294,7 @@ function getDiscoveredPlugins() {
 module.exports = {
   initPlugins,
   shutdownPlugins,
+  getPluginDataDir,
   enablePluginForVault,
   disablePluginForVault,
   getDiscoveredPlugins,

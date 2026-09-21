@@ -8,7 +8,7 @@ const fsp = fs.promises;
 const path = require("path");
 
 const config = require("../config");
-const bootstrapRoutes = require("../routes/bootstrap");
+const bootstrapCache = require("../cache");
 
 const { sessions, makeStorageName } = require("./demo-sessions");
 
@@ -104,7 +104,7 @@ async function provisionVault(sessionId, userVaultName) {
   await fsp.cp(config.demoTemplateDir, vaultPath, { recursive: true });
 
   config.refreshVaults();
-  bootstrapRoutes.invalidateVault(storageName);
+  bootstrapCache.invalidateVault(storageName);
 
   s.vaults.add(userVaultName);
   await recomputeBytes(sessionId);

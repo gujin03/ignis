@@ -155,4 +155,23 @@ function resolveVaultPath(vaultRoot, relativePath) {
   return resolved;
 }
 
-module.exports = { encodeContentDispositionFilename, resolveVaultPath };
+// Vault-relative form of a path: forward slashes, no leading "./", no surrounding slashes.
+function toVaultRel(p) {
+  return String(p == null ? "" : p)
+    .split(path.sep)
+    .join("/")
+    .replace(/^\.\//, "")
+    .replace(/^\/+|\/+$/g, "");
+}
+
+// Absolute path of a vault-relative path under base.
+function fromVaultRel(base, rel) {
+  return rel ? path.join(base, rel.split("/").join(path.sep)) : base;
+}
+
+module.exports = {
+  encodeContentDispositionFilename,
+  resolveVaultPath,
+  toVaultRel,
+  fromVaultRel,
+};

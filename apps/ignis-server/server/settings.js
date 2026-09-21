@@ -21,6 +21,13 @@ const DEFAULTS = {
   wsOrigins: [],
   // Private IPs/CIDRs the proxy may reach despite the SSRF guard.
   proxyAllowPrivate: [],
+  ignoreRules: [
+    {
+      name: "System",
+      patterns: [".git", ".trash", "node_modules", "@eaDir", "#recycle"],
+    },
+  ],
+  trustedVaults: [],
 };
 
 const PROXY_MODES = ["any", "allowlist", "disabled"];
@@ -67,6 +74,18 @@ function fromEnv() {
 
 const envOverrides = fromEnv();
 
+const envIgnoreLines = process.env.IGNORED_PATHS
+  ? parseList(process.env.IGNORED_PATHS)
+  : [];
+
+function hasShapeOf(reference, value) {
+  if (Array.isArray(reference)) {
+    return Array.isArray(value);
+  }
+
+  return typeof value === typeof reference;
+}
+
 function loadFile() {
   try {
     const parsed = JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf-8"));
@@ -78,7 +97,7 @@ function loadFile() {
         continue;
       }
 
-      if (parsed[key] !== undefined) {
+      if (parsed[key] !== undefined && hasShapeOf(DEFAULTS[key], parsed[key])) {
         clean[key] = parsed[key];
       }
     }
@@ -97,6 +116,20 @@ function getAll() {
 
 function get(key) {
   return getAll()[key];
+}
+
+function resolveIgnoreLines() {
+  const rules = getAll().ignoreRules;
+  const validRules = Array.isArray(rules)
+    ? rules.filter(
+        (r) =>
+          r &&
+          Array.isArray(r.patterns) &&
+          r.patterns.every((p) => typeof p === "string"),
+      )
+    : [];
+
+  return [...validRules.flatMap((r) => r.patterns), ...envIgnoreLines];
 }
 
 // Merge validated changes into the persisted file and return the new effective settings.
@@ -122,5 +155,6 @@ module.exports = {
   MAX_WRITE_COALESCE_MS,
   getAll,
   get,
+  resolveIgnoreLines,
   update,
 };

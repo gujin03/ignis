@@ -4,6 +4,8 @@ const { setupWebSocket } = require("./ws");
 const {
   encodeContentDispositionFilename,
   resolveVaultPath,
+  toVaultRel,
+  fromVaultRel,
 } = require("./path-utils");
 const { sanitizeError } = require("./errors");
 
@@ -13,5 +15,7 @@ module.exports = {
   setupWebSocket,
   encodeContentDispositionFilename,
   resolveVaultPath,
+  toVaultRel,
+  fromVaultRel,
   sanitizeError,
 };

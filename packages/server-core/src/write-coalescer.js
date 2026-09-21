@@ -61,6 +61,28 @@ function emitGiveUp(absPath, err) {
   }
 }
 
+// Set<fn(absPath)>
+const flushSuccessSubs = new Set();
+
+// fn(absPath) runs when a buffered write reaches disk.
+function onFlushSuccess(fn) {
+  flushSuccessSubs.add(fn);
+
+  return () => {
+    flushSuccessSubs.delete(fn);
+  };
+}
+
+function emitFlushSuccess(absPath) {
+  for (const fn of flushSuccessSubs) {
+    try {
+      fn(absPath);
+    } catch (e) {
+      console.error("[write-coalesce] flush-success subscriber threw:", e);
+    }
+  }
+}
+
 async function writeToDisk(absPath, data, encoding) {
   await fs.promises.writeFile(
     absPath,
@@ -120,10 +142,13 @@ function flushEntry(absPath) {
   pending.delete(absPath);
   const { data, encoding } = entry;
 
-  writeToDisk(absPath, data, encoding).catch((err) => {
-    console.error(`[write-coalesce] Flush failed for ${absPath}:`, err);
-    requeueFailed(absPath, entry, err);
-  });
+  writeToDisk(absPath, data, encoding).then(
+    () => emitFlushSuccess(absPath),
+    (err) => {
+      console.error(`[write-coalesce] Flush failed for ${absPath}:`, err);
+      requeueFailed(absPath, entry, err);
+    },
+  );
 }
 
 function scheduleFlush(absPath) {
@@ -143,6 +168,14 @@ function estimateSize(data, encoding) {
   }
 
   return data.length || data.byteLength || 0;
+}
+
+function pendingBuffer(data, encoding) {
+  if (typeof data === "string") {
+    return Buffer.from(data, encoding === "binary" ? "utf-8" : encoding);
+  }
+
+  return Buffer.isBuffer(data) ? data : Buffer.from(data);
 }
 
 /**
@@ -199,6 +232,10 @@ function getPending(absPath) {
   return null;
 }
 
+function pendingPaths() {
+  return Array.from(pending.keys());
+}
+
 function cancelPending(absPath) {
   const entry = pending.get(absPath);
 
@@ -224,11 +261,14 @@ async function flushPending(absPath) {
 
   try {
     await writeToDisk(absPath, data, encoding);
-    return true;
   } catch (e) {
     requeueFailed(absPath, entry, e);
     throw e;
   }
+
+  emitFlushSuccess(absPath);
+
+  return true;
 }
 
 function cancelPendingSubtree(absDir) {
@@ -283,9 +323,12 @@ async function flushAll() {
     const entry = pending.get(absPath);
     pending.delete(absPath);
 
-    return writeToDisk(absPath, entry.data, entry.encoding).catch((err) => {
-      console.error(`[write-coalesce] Failed to flush ${absPath}:`, err);
-    });
+    return writeToDisk(absPath, entry.data, entry.encoding).then(
+      () => emitFlushSuccess(absPath),
+      (err) => {
+        console.error(`[write-coalesce] Failed to flush ${absPath}:`, err);
+      },
+    );
   });
 
   const timeout = new Promise((resolve) => {
@@ -306,17 +349,22 @@ function _reset() {
   pending.clear();
   lastWriteTime.clear();
   giveUpSubs.clear();
+  flushSuccessSubs.clear();
 }
 
 module.exports = {
   writeCoalesced,
   getPending,
+  estimateSize,
+  pendingBuffer,
+  pendingPaths,
   cancelPending,
   flushPending,
   cancelPendingSubtree,
   flushPendingSubtree,
   flushAll,
   onFlushGiveUp,
+  onFlushSuccess,
   configure,
   _reset,
 };

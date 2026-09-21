@@ -83,6 +83,7 @@ export default defineConfig({
           items: [
             { label: "Troubleshooting", slug: "troubleshooting" },
             { label: "Sync connectivity", slug: "sync" },
+            { label: "Performance", slug: "performance" },
           ],
         },
         {

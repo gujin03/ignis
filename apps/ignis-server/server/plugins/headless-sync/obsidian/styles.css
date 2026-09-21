@@ -94,20 +94,18 @@
   box-shadow: var(--shadow-s);
 }
 
-.ignis-log-details {
-  margin-top: 16px;
+.modal.ignis-sync-log-modal {
+  height: var(--modal-height);
+  width: var(--modal-width);
+  max-width: var(--modal-max-width-narrow);
 }
 
-.ignis-log-details summary {
-  cursor: pointer;
-  color: var(--text-muted);
-  font-size: var(--font-ui-small);
-  padding: 4px 0;
-  user-select: none;
-}
-
-.ignis-log-details summary:hover {
-  color: var(--text-normal);
+.modal.ignis-sync-log-modal .modal-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: calc(var(--size-4-1) * -1);
+  padding: var(--size-4-1);
 }
 
 .ignis-log-terminal {
@@ -118,7 +116,8 @@
   line-height: 1.5;
   padding: 12px;
   border-radius: var(--radius-s);
-  max-height: 250px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   margin-top: 8px;

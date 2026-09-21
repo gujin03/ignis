@@ -70,17 +70,3 @@ describe("createHash", () => {
     );
   });
 });
-
-describe("digestAsync", () => {
-  it("SHA-256 async matches the sync result", async () => {
-    const h = createHash("sha256");
-    h.update("abc");
-    expect(await h.digestAsync("hex")).toBe(VECTORS.SHA256.abc);
-  });
-
-  it("MD5 async falls back to the sync hasher (SubtleCrypto doesn't support it)", async () => {
-    const h = createHash("md5");
-    h.update("abc");
-    expect(await h.digestAsync("hex")).toBe(VECTORS.MD5.abc);
-  });
-});

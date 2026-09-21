@@ -1,10 +1,8 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import { Pencil } from "lucide-svelte";
   import Button from "../../components/input/Button.svelte";
 
   export let vault;
-  export let linked = false;
 
   const dispatch = createEventDispatcher();
 
@@ -41,18 +39,9 @@
       <div class="vault-row-region">{vault.region || "Unknown region"}</div>
     </div>
     <div class="vault-row-actions">
-      {#if linked}
-        <button class="icon-btn" title="Edit sync config" on:click={toggleExpand}>
-          <Pencil size="14" />
-        </button>
-      {:else}
-        <Button
-          variant="secondary"
-          on:click={toggleExpand}
-        >
-          {expanded ? "Cancel" : "Connect"}
-        </Button>
-      {/if}
+      <Button variant="secondary" on:click={toggleExpand}>
+        {expanded ? "Cancel" : "Connect"}
+      </Button>
     </div>
   </div>
 
@@ -90,9 +79,7 @@
       </div>
 
       <div class="option-footer">
-        {#if expanded && !linked}
-          <Button variant="secondary" on:click={toggleExpand}>Cancel</Button>
-        {/if}
+        <Button variant="secondary" on:click={toggleExpand}>Cancel</Button>
         <Button variant="primary" disabled={linking} on:click={onLink}>
           {linking ? "Linking..." : "Link Vault"}
         </Button>
@@ -148,25 +135,6 @@
   .vault-row-actions :global(.btn.secondary:hover:not(:disabled)) {
     background: var(--interactive-hover);
     color: var(--text-normal);
-  }
-
-  .icon-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 0.25rem;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    box-shadow: none;
-  }
-
-  .icon-btn:hover {
-    color: var(--text-normal);
-    background: var(--background-modifier-hover);
   }
 
   .vault-row-options {

@@ -3,9 +3,13 @@ title: Settings
 description: "Runtime configurable server settings"
 ---
 
-Ignis adds its own tab to Obsidian's settings, where you configure the running server, as well as see the current ignis version and server status. Some settings only take effect after you reload the page.
+Ignis adds its own tabs to Obsidian's settings for configuring the server and Ignis-specific functionality.
 
-## Caching
+## General
+
+The General tab configures server-wide settings that affect performance and security for the whole Ignis instance. It also displays the current Ignis version and if there is a new version available, as well as server connection status.
+
+### Caching
 
 **Content cache** (default 50 MB) keeps file content in memory so reopening a file does not re-fetch it from the server. Increase it for a large vault or slow storage; lower it to use less memory.
 
@@ -13,7 +17,7 @@ Ignis adds its own tab to Obsidian's settings, where you configure the running s
 
 Cache changes take effect after a tab refresh.
 
-## Security
+### Security
 
 **Max request body** (default 50 MB) caps the largest request the server accepts.
 
@@ -27,6 +31,18 @@ See [Hardening](/docs/security/hardening/) for what the proxy exposes and why yo
 
 **Direct-fetch hosts** are fetched by the browser directly, bypassing the proxy, and work only for hosts that allow cross-origin browser requests. This applies after a tab refresh.
 
-## Advanced
+### Advanced
 
 **Write coalesce window** (default 0, off) debounces rapid writes on slow filesystems such as rclone, NFS, or SMB. Max 60000. The same setting is available as the [`WRITE_COALESCE_MS`](/docs/server/environment/) environment variable.
+
+**Ignored paths** are paths the server does not watch or track for changes, using rules defined with gitignore patterns. When creating rule sets for path exclusion, ignis also provides suggestions for plugin paths it determines to be heavy on the file watcher. See [Performance](/docs/performance/#ignored-paths).
+
+## Vault
+
+Ignis settings that apply to only the current vault.
+
+**Always trust plugins for this vault** enables community plugins for the current vault in every browser that opens it. This lets you connect to Ignis and open your vault from any device without needing to explicitly permit plugins every time you use a new client. Toggling this setting on bypasses Obsidian's trust prompt for everyone who opens the vault, only enable it on vaults whose plugins you control.
+
+## Core plugins
+
+Server plugins such as Headless Sync are enabled per vault from this tab. See [Server plugins](/docs/using/server-plugins/).

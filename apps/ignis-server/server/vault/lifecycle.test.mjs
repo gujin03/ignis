@@ -16,7 +16,7 @@ const VAULT_ID = "lifecycle";
 const vaultPath = path.join(VAULT_ROOT, VAULT_ID);
 fs.mkdirSync(vaultPath, { recursive: true });
 
-const { setWss, withWatcherStopped } = require("./vault-lifecycle");
+const { setWss, withWatcherStopped } = require("./lifecycle");
 const { watcher } = require("@ignis/server-core");
 
 function recordingWss() {

@@ -37,9 +37,7 @@ export class ContentCache {
     const size = data ? data.length || data.byteLength || 0 : 0;
 
     // Remove old entry if replacing
-    if (this._cache.has(norm)) {
-      this._currentSize -= this._cache.get(norm).size;
-    }
+    this.delete(norm);
 
     // Evict LRU entries if needed
     while (this._currentSize + size > this._maxSize && this._cache.size > 0) {

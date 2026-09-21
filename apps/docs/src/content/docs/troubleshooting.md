@@ -35,13 +35,13 @@ The usual cause is a sync server on a private address: Ignis relays plugin reque
 
 If notes open but images and attachments don't, the usual cause is the server waiting on a slow disk, typically a large vault on a network mount. You can let Ignis run more concurrent file operations by modifying `UV_THREADPOOL_SIZE`. The steps are in [Network filesystems](/docs/server/deploy/#network-filesystems).
 
-### External changes don't show in the vault until after a tab reload
+### External changes don't show in the vault
 
 Ignis detects external changes by watching the files on the disk. If changes are not being detected, this is usually due to a limit on how many files can be watched, or if the vault lives on a network share.
 
-If you see errors mentioning `fs.inotify.max_user_watches` in the container logs, the host has run out of file watches, and raising the limit is covered in [Network filesystems](/docs/server/deploy/#network-filesystems).
+If you see errors mentioning `fs.inotify.max_user_watches` in the container logs, the host has run out of file watches, and raising the limit is covered in [Network filesystems](/docs/server/deploy/#network-filesystems). Alternatively you can lower the count by excluding certain paths using the watcher ignore list. More information can be found in [Performance](/docs/performance/#ignored-paths).
 
-If your vault is on a mounted network share, Ignis's file watcher cannot detect changes made by other clients of the network share beyond the host machine Ignis is running on. Reloading the tab will load changes made from other machines.
+If your vault is on a mounted network share, Ignis's file watcher cannot detect changes made by other clients of the network share beyond the host machine Ignis is running on. Run `Refresh vault from disk` from the command palette to load changes made from other machines.
 
 ### A vault doesn't appear in the vault list
 

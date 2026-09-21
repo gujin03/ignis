@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
@@ -80,5 +80,32 @@ describe("getVaultPath", () => {
     expect(config.getVaultPath("constructor")).toBe(null);
     expect(config.getVaultPath("hasOwnProperty")).toBe(null);
     expect(config.getVaultPath("__proto__")).toBe(null);
+  });
+});
+
+describe("dev flags", () => {
+  afterEach(() => {
+    delete process.env.DEV_SUPPRESS_WRITE_FAILURES;
+    delete process.env.DEV_FORCE_READING_VIEW;
+  });
+
+  it("are off unless the variable is exactly true", () => {
+    process.env.DEV_SUPPRESS_WRITE_FAILURES = "1";
+    process.env.DEV_FORCE_READING_VIEW = "yes";
+
+    const config = loadConfig();
+
+    expect(config.devSuppressWriteFailures).toBe(false);
+    expect(config.devForceReadingView).toBe(false);
+  });
+
+  it("are on when the variable is true", () => {
+    process.env.DEV_SUPPRESS_WRITE_FAILURES = "true";
+    process.env.DEV_FORCE_READING_VIEW = "true";
+
+    const config = loadConfig();
+
+    expect(config.devSuppressWriteFailures).toBe(true);
+    expect(config.devForceReadingView).toBe(true);
   });
 });

@@ -46,6 +46,15 @@ function wireWebSocket(server) {
         }
 
         touchSession(sessionId);
+      } else {
+        const socket = rest[0];
+
+        if (socket && socket.writable) {
+          socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+          socket.destroy();
+        }
+
+        return;
       }
     }
 

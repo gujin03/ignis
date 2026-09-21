@@ -445,3 +445,23 @@ describe("onFailureChange", () => {
     expect(fired).toBe(0);
   });
 });
+
+describe("silent by default", () => {
+  it("treats a plain write as silent once the default is on", async () => {
+    transport.writeFile.mockRejectedValue(new Error("EROFS"));
+    const failed = [];
+    wd.onFailure((p) => failed.push(p));
+    wd.setSilentByDefault(true);
+
+    const track = wd.trackWrite("note.md");
+    track.failure("text", "utf-8", null);
+
+    for (let i = 0; i < 9; i++) {
+      await vi.advanceTimersByTimeAsync(30000);
+    }
+
+    expect(failed).toEqual([]);
+    expect(wd.listFailed()).toEqual([]);
+    expect(wd.getState()).toBe("clean");
+  });
+});

@@ -1,3 +1,4 @@
+// Legacy migration, remove at some point.
 const fs = require("fs");
 const path = require("path");
 

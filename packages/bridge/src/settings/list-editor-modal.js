@@ -1,4 +1,5 @@
 import { Modal, Setting, Notice } from "obsidian";
+import { appendMissing } from "./ignore-patterns.js";
 
 // Modal editor for a list of string entries (the proxy host allowlist).
 class ListEditorModal extends Modal {
@@ -47,13 +48,17 @@ class ListEditorModal extends Modal {
       );
   }
 
-  addEntry(entry) {
-    if (this.values.includes(entry)) {
-      return false;
+  addValues(entries) {
+    const union = appendMissing(this.values, entries);
+    const newCount = union.length - this.values.length;
+
+    if (newCount > 0) {
+      this.values = union;
+      this.commit();
+      this.renderList();
     }
 
-    this.values.push(entry);
-    return true;
+    return newCount;
   }
 
   addCurrent() {
@@ -63,30 +68,17 @@ class ListEditorModal extends Modal {
       return;
     }
 
-    if (!this.addEntry(entry)) {
+    if (!this.addValues([entry])) {
       new Notice("That entry is already in the list.");
       return;
     }
 
     this.input.setValue("");
     this.input.inputEl.focus();
-    this.commit();
-    this.renderList();
   }
 
   addRecommended() {
-    let added = 0;
-
-    for (const host of this.opts.recommended.hosts) {
-      if (this.addEntry(host)) {
-        added++;
-      }
-    }
-
-    if (added > 0) {
-      this.commit();
-      this.renderList();
-    }
+    const added = this.addValues(this.opts.recommended.hosts);
 
     new Notice(
       added > 0

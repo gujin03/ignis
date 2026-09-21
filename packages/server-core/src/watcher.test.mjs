@@ -189,6 +189,192 @@ async function makeVaultDir(fileCount) {
   return tmpDir;
 }
 
+// nested dir needed for chokidar deletion events.
+async function makeNestedVaultDir() {
+  tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "watch-test-"));
+
+  const vaultPath = path.join(tmpDir, "vault");
+
+  await fs.promises.mkdir(vaultPath);
+  await fs.promises.writeFile(path.join(vaultPath, "a.md"), "x");
+
+  return vaultPath;
+}
+
+function countWatched(entry) {
+  return Object.values(entry.watcher.getWatched()).reduce(
+    (acc, names) => acc + names.length,
+    0,
+  );
+}
+
+describe("watcher start hook", () => {
+  it("fires with the vault id after ready on a fresh start", async () => {
+    await makeVaultDir(1);
+    const starts = [];
+
+    watcher.onWatcherStart((vaultId, info) => starts.push({ vaultId, info }));
+
+    const entry = watcher.startWatching(VAULT_ID, tmpDir);
+
+    await whenReady(entry);
+
+    expect(starts).toEqual([
+      {
+        vaultId: VAULT_ID,
+        info: { rebuilt: false, tracked: expect.any(Number), errors: 0 },
+      },
+    ]);
+    expect(starts[0].info.tracked).toBeGreaterThan(0);
+  });
+
+  it("reports the tracked count and the error total of a degraded start", async () => {
+    await makeVaultDir(3);
+    const starts = [];
+
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    watcher.onWatcherStart((vaultId, info) => starts.push(info));
+
+    const entry = watcher.startWatching(VAULT_ID, tmpDir);
+    const ready = whenReady(entry);
+
+    entry.watcher.emit(
+      "error",
+      watchError("EPERM: operation not permitted, watch", { code: "EPERM" }),
+    );
+
+    await ready;
+
+    expect(starts).toHaveLength(1);
+    expect(starts[0]).toMatchObject({ rebuilt: false, errors: 1 });
+    expect(starts[0].tracked).toBeGreaterThanOrEqual(3);
+    expect(watcher.isWatching(VAULT_ID)).toBe(true);
+  });
+
+  it("stops firing after offWatcherStart", async () => {
+    await makeVaultDir(1);
+    const starts = [];
+    const listener = (vaultId, info) => starts.push(info);
+
+    watcher.onWatcherStart(listener);
+    watcher.offWatcherStart(listener);
+
+    const entry = watcher.startWatching(VAULT_ID, tmpDir);
+
+    await whenReady(entry);
+
+    expect(starts).toEqual([]);
+  });
+});
+
+describe("isWatching", () => {
+  it("turns true at ready and false again once the watcher stops", async () => {
+    await makeVaultDir(1);
+
+    expect(watcher.isWatching(VAULT_ID)).toBe(false);
+
+    const entry = watcher.startWatching(VAULT_ID, tmpDir);
+
+    expect(watcher.isWatching(VAULT_ID)).toBe(false);
+
+    await whenReady(entry);
+
+    expect(watcher.isWatching(VAULT_ID)).toBe(true);
+
+    await watcher.stopWatching(VAULT_ID);
+
+    expect(watcher.isWatching(VAULT_ID)).toBe(false);
+  });
+});
+
+describe("watcher liveness rebuild", () => {
+  it("replaces a ready watcher that tracks no paths", async () => {
+    const vaultPath = await makeNestedVaultDir();
+    const starts = [];
+    const rebuilds = [];
+    const events = [];
+
+    globalListener = (vaultId, event) => events.push(event);
+    watcher.addGlobalListener(globalListener);
+    watcher.onWatcherStart((vaultId, info) => starts.push(info));
+    watcher.onWatcherRebuild((vaultId) => rebuilds.push(vaultId));
+
+    const dead = watcher.startWatching(VAULT_ID, vaultPath);
+
+    watcher.addListener(VAULT_ID, () => {});
+
+    await whenReady(dead);
+    await fs.promises.rm(vaultPath, { recursive: true, force: true });
+
+    await vi.waitFor(() => expect(countWatched(dead)).toBe(0), {
+      timeout: 5000,
+    });
+
+    await fs.promises.mkdir(vaultPath);
+
+    const fresh = watcher.startWatching(VAULT_ID, vaultPath);
+
+    expect(fresh).not.toBe(dead);
+    expect(fresh.idleTimer).not.toBeNull();
+    expect(dead.listeners.size).toBe(0);
+    expect(fresh.listeners.size).toBe(0);
+
+    // teardown occurs in rebuild hook
+    expect(rebuilds).toEqual([VAULT_ID]);
+    expect(starts).toHaveLength(1);
+
+    await whenReady(fresh);
+
+    expect(starts).toEqual([
+      { rebuilt: false, tracked: expect.any(Number), errors: 0 },
+      { rebuilt: true, tracked: expect.any(Number), errors: 0 },
+    ]);
+    expect(starts[1].tracked).toBeGreaterThan(0);
+    expect(rebuilds).toEqual([VAULT_ID]);
+
+    await dead.watcher.close();
+
+    await sleep(300);
+    await fs.promises.writeFile(path.join(vaultPath, "reborn.md"), "x");
+
+    await vi.waitFor(
+      () => expect(events.some((e) => e.path === "reborn.md")).toBe(true),
+      { timeout: 5000 },
+    );
+  }, 20000);
+
+  it("returns the existing entry while it still tracks paths", async () => {
+    await makeVaultDir(1);
+    const starts = [];
+    const rebuilds = [];
+
+    watcher.onWatcherStart((vaultId, info) => starts.push(info));
+    watcher.onWatcherRebuild((vaultId) => rebuilds.push(vaultId));
+
+    const entry = watcher.startWatching(VAULT_ID, tmpDir);
+
+    await whenReady(entry);
+
+    expect(watcher.startWatching(VAULT_ID, tmpDir)).toBe(entry);
+    expect(starts).toEqual([
+      { rebuilt: false, tracked: expect.any(Number), errors: 0 },
+    ]);
+    expect(rebuilds).toEqual([]);
+  });
+
+  it("returns an entry that has not reached ready", async () => {
+    await makeVaultDir(1);
+
+    const entry = watcher.startWatching(VAULT_ID, tmpDir);
+
+    expect(entry.ready).toBe(false);
+    expect(watcher.startWatching(VAULT_ID, tmpDir)).toBe(entry);
+
+    await whenReady(entry);
+  });
+});
+
 describe("watcher scan errors", () => {
   it("logs the first error once and totals the rest on the ready line", async () => {
     await makeVaultDir(5);

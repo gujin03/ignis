@@ -1,5 +1,5 @@
 const path = require("path");
-const obCli = require("./ob-cli");
+const obCli = require("../../obsidian-account/ob-cli");
 const auth = require("./auth");
 const { SyncManager } = require("./sync-manager");
 const { SyncBroadcaster } = require("./broadcaster");
@@ -29,10 +29,6 @@ module.exports = {
       ctx.log("ob CLI not found. Install obsidian-headless to enable sync.");
     }
 
-    // Redirect ob's HOME under the plugin's data dir so its config (per-vault sync setups, etc.)
-    // survives container recreates. Must happen before auth.loadToken since loadToken pushes the token into ob's config location via syncToObCli.
-    obCli.configure({ dataDir: ctx.dataDir });
-
     const token = auth.loadToken(ctx.dataDir);
 
     if (token) {
@@ -58,6 +54,7 @@ module.exports = {
 
     // Auto-start syncs that were running before shutdown
     if (this._obStatus.installed && auth.isAuthenticated(ctx.dataDir)) {
+      await this._syncManager.applyPendingConfigs();
       this._syncManager.autoStartAll();
     }
 

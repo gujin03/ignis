@@ -6,7 +6,7 @@ import {
   enqueueWrite,
   hasPending,
 } from "./write-coalescer.js";
-import { isRecentLocalOp } from "./echo-guard.js";
+import { isRecentSentOp } from "./echo-guard.js";
 
 function makeTransport() {
   const calls = [];
@@ -45,7 +45,10 @@ describe("client write coalescer", () => {
     await vi.advanceTimersByTimeAsync(150);
 
     expect(transport.writeFile).toHaveBeenCalledTimes(1);
-    expect(transport.calls[0]).toMatchObject({ path: "types.json", data: "v3" });
+    expect(transport.calls[0]).toMatchObject({
+      path: "types.json",
+      data: "v3",
+    });
     expect(hasPending("types.json")).toBe(false);
   });
 
@@ -61,11 +64,11 @@ describe("client write coalescer", () => {
   it("marks the local op at flush time, not before, so the watcher echo is suppressed", async () => {
     bufferWrite("c.json", "c", "utf-8");
 
-    expect(isRecentLocalOp("c.json")).toBe(false);
+    expect(isRecentSentOp("c.json")).toBe(false);
 
     await vi.advanceTimersByTimeAsync(150);
 
-    expect(isRecentLocalOp("c.json")).toBe(true);
+    expect(isRecentSentOp("c.json")).toBe(true);
   });
 
   it("invokes onResult with the server result after the flush", async () => {

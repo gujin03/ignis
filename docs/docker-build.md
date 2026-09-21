@@ -50,7 +50,7 @@ node apps/ignis-server/scripts/build-image.js --push
 docker buildx build --builder ignis-builder \
   --platform linux/amd64 \
   -f apps/ignis-server/Dockerfile \
-  -t nobbe/ignis:0.8.10 \
+  -t nobbe/ignis:0.8.11 \
   --push .
 ```
 
@@ -71,7 +71,7 @@ node build-image.js [--push] [--no-latest]
 其他控制：
 
 - `IGNIS_IMAGE` 环境变量：自定义镜像名（默认 `nobbe/ignis`）
-- `ARG IGNIS_BUILD`：构建戳，注入 `build-info.json`（`0.8.10+<hash>`）
+- `ARG IGNIS_BUILD`：构建戳，注入 `build-info.json`（`0.8.11+<hash>`）
 - 构建前会检查 `git status`，有未提交改动时警告镜像与源码不一致
 
 ## 三、验证清单
@@ -90,7 +90,7 @@ docker run -d -p 8080:8080 \
 
 # 4. 验证服务与 Obsidian 版本
 curl http://localhost:8080/api/version
-# 期望 {"version":"0.8.10","build":"<hash>","obsidianVersion":"1.13.7"}
+# 期望 {"version":"0.8.11","build":"<hash>","obsidianVersion":"1.13.7"}
 ```
 
 ## 四、CI 集成（GitHub Actions 推荐做法）
@@ -129,7 +129,7 @@ jobs:
 ```yaml
 services:
   ignis:
-    image: nobbe/ignis:0.8.10        # 或用下方 build 块从源码构建
+    image: nobbe/ignis:0.8.11        # 或用下方 build 块从源码构建
     # build:
     #   context: ../../..
     #   dockerfile: apps/ignis-server/Dockerfile

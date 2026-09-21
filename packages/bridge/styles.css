@@ -242,7 +242,7 @@
   z-index: 20;
 }
 
-.ignis-plugins-description {
+.ignis-tab-description {
   padding: 0 16px;
   color: var(--text-muted);
   font-size: var(--font-ui-small);

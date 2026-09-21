@@ -4,7 +4,7 @@
 
 ## 这是什么
 
-**Ignis 0.8.10** —— 让 Obsidian 在浏览器中运行的自托管服务端。通过一层 Electron/Node API 兼容层（shim），把 Obsidian 对 Electron 的调用改道到 Express 服务器（HTTP + WebSocket）。Obsidian 本体不包含在本包中（见"缺失内容"）。
+**Ignis 0.8.11** —— 让 Obsidian 在浏览器中运行的自托管服务端。通过一层 Electron/Node API 兼容层（shim），把 Obsidian 对 Electron 的调用改道到 Express 服务器（HTTP + WebSocket）。Obsidian 本体不包含在本包中（见"缺失内容"）。
 
 **已从 Obsidian 1.12.7 升级到 1.13.7**（Electron 39.8.3 / Node 22.20 / Chrome 142）。
 
@@ -110,4 +110,4 @@ Bridge (Ignis 伪插件: 设置注入/状态栏/图片重试)
 
 - compose 模板：`apps/ignis-server/examples/production/`（linux/amd64 固定、healthcheck、卷映射）
 - CI/CD：`.github/workflows/`（ci / build-image / deploy）+ `docs/ci-cd.md`
-- 发布：`git tag v0.8.10 && git push origin v0.8.10`
+- 发布：`git tag v0.8.11 && git push origin v0.8.11`

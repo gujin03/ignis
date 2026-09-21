@@ -43,7 +43,11 @@ This kind of report makes it straightforward to add the missing shim.
 
 ## Code Contributions
 
-If you want to contribute code:
+In order to avoid wasted work and time for both Maintainer and Contributors, any pull request that is more than a small, self-contained fix (e.g. a missing shim property, a typo, a broken link) must be preceded by a discussion with the Maintainer, in an issue or discussion thread, and have the Maintainer's go-ahead before the work starts. This covers new features, changes to anything documented as a design decision (see [ARCHITECTURE.md](docs/ARCHITECTURE.md)), or changes to the pinned Obsidian version. A pull request that was not agreed in a prior discussion is closed without review.
+
+One fix or feature per pull request. CI configuration, build tooling, and unrelated cleanups are separate pull requests, each requiring its own prior discussion. This includes documentation, unless it is explicitly about the changes in that pull request and written in line with existing documentation formats. Files for the Contributor's own tooling (editor or AI assistant configuration, handoff notes, ignore entries specific to the Contributor's environment) do not belong in a pull request.
+
+Once the approach is agreed:
 
 1. Fork the repo and create a branch for your change
 2. Run `npm install` once at the repo root (npm workspaces)
@@ -51,9 +55,6 @@ If you want to contribute code:
 4. Test your change in the browser with at least one vault open
 5. Run `npm test` and make sure the whole suite passes
 6. Run `npm run lint` and make sure it passes
-7. Keep PRs focused, one fix or feature per PR
-
-Changes to deliberate behavior (the fs shim's caching and write model, the proxy's request handling, anything documented as a design decision) start as an issue, not a PR. Open the issue first so the approach can be discussed; a patch against an undiscussed design change will be closed on this basis.
 
 ### Project structure
 

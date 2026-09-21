@@ -43,6 +43,10 @@ function createRemoteVault(name, encryption, password, region) {
   return post("/create-remote-vault", { name, encryption, password, region });
 }
 
+function setConfig(vaultId, syncConfig) {
+  return post("/config", { vaultId, ...syncConfig });
+}
+
 function startSync(vaultId) {
   return post("/start", { vaultId });
 }
@@ -70,6 +74,7 @@ module.exports = {
   getRemoteVaults,
   setupSync,
   createRemoteVault,
+  setConfig,
   startSync,
   stopSync,
   unlinkVault,

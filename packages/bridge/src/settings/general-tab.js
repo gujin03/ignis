@@ -2,6 +2,7 @@ import { Setting, Notice, setIcon } from "obsidian";
 import { isDemoMode } from "../demo-guards.js";
 import { stripBuildMetadata, isNewer } from "../util/version.js";
 import { ListEditorModal } from "./list-editor-modal.js";
+import { createSettingGroup, saveSetting } from "./settings-ui.js";
 
 const GITHUB_URL = "https://github.com/Nystik-gh/ignis";
 const GITHUB_API_LATEST =
@@ -133,16 +134,6 @@ const STATUS_DOT_CLASSES = {
   closed: "ignis-status-disconnected",
 };
 
-function createSettingGroup(containerEl, heading) {
-  const group = containerEl.createDiv("setting-group");
-
-  if (heading) {
-    new Setting(group).setName(heading).setHeading();
-  }
-
-  return group.createDiv("setting-items");
-}
-
 function addServerStatus(containerEl) {
   const ws = window.__ignis.ws;
 
@@ -270,24 +261,8 @@ function renderServerSettings(containerEl, current, app) {
     key: "writeCoalesceMs",
     toStored: (n) => n,
   });
-}
 
-// Persist a single setting. The server validates, applies the live ones, and saves.
-async function saveSetting(partial) {
-  try {
-    const res = await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(partial),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "Save failed");
-    }
-  } catch (e) {
-    new Notice(`Failed to save setting: ${e.message}`);
-  }
+  ignoreRulesField(advanced, current);
 }
 
 function numberField(containerEl, { name, desc, value, key, toStored }) {
@@ -373,13 +348,14 @@ function proxyAccessField(parent, current, app) {
   applyVisibility();
 }
 
-function listField(containerEl, { name, desc, value, key, app, modal }) {
-  let current = [...(value || [])];
-
+function listField(
+  containerEl,
+  { name, desc, value, key, app, modal, savedNotice },
+) {
   const setting = new Setting(containerEl).setName(name).setDesc(desc);
 
   const setLabel = (btn) =>
-    btn.setButtonText(current.length ? `Edit (${current.length})` : "Edit");
+    btn.setButtonText(value.length ? `Edit (${value.length})` : "Edit");
 
   setting.addButton((btn) => {
     setLabel(btn);
@@ -390,17 +366,89 @@ function listField(containerEl, { name, desc, value, key, app, modal }) {
         placeholder: modal.placeholder,
         emptyNote: modal.emptyNote,
         recommended: modal.recommended,
-        values: current,
-        onChange: (next) => {
-          current = next;
-          saveSetting({ [key]: current });
+        values: value,
+        onChange: async (edited) => {
+          value = edited;
           setLabel(btn);
+
+          if ((await saveSetting({ [key]: value })) && savedNotice) {
+            new Notice(savedNotice);
+          }
         },
       }).open();
     });
   });
 
   return setting;
+}
+
+function ignoreRulesField(containerEl, current) {
+  let rules = current.ignoreRules;
+
+  const setting = new Setting(containerEl)
+    .setName("Ignored paths")
+    .setDesc(
+      createFragment((frag) => {
+        frag.appendText(
+          "Rules for paths to ignore when watching for file changes. Ignored paths still appear in the vault and can be manually refreshed. Uses gitignore patterns ",
+        );
+        frag.createEl("a", {
+          text: "Learn more",
+          href: "https://ignis.thiefling.com/docs/performance/#ignored-paths",
+          attr: { target: "_blank", rel: "noopener noreferrer" },
+        });
+      }),
+    );
+
+  const setLabel = (btn) =>
+    btn.setButtonText(rules.length ? `Edit (${rules.length})` : "Edit");
+
+  setting.addButton((btn) => {
+    setLabel(btn);
+
+    btn.onClick(() => {
+      openIgnoreRulesEditor({
+        rules,
+        suggestions: current.ignoreSuggestions,
+        onChange: (edited) => {
+          rules = edited;
+          setLabel(btn);
+        },
+        onClose: async (edited) => {
+          rules = edited;
+          await saveSetting({ ignoreRules: edited });
+        },
+      });
+    });
+  });
+}
+
+function openIgnoreRulesEditor(opts) {
+  const component = new window.IgnisUI.IgnoreRulesEditor({
+    // mount to settings modal to avoid focus issues
+    target: document.querySelector(".modal-container") || document.body,
+    props: {
+      rules: opts.rules,
+      suggestions: opts.suggestions,
+    },
+  });
+
+  let latest = opts.rules;
+  let dirty = false;
+
+  component.$on("change", (event) => {
+    latest = event.detail;
+    dirty = true;
+    opts.onChange(latest);
+  });
+
+  component.$on("close", () => {
+    component.$destroy();
+
+    if (dirty) {
+      opts.onClose(latest);
+    }
+  });
 }
 
 export { display };

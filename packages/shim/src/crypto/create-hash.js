@@ -8,12 +8,6 @@ const HASHERS = {
   MD5: md5,
 };
 
-const SUBTLE_ALG = {
-  SHA1: "SHA-1",
-  SHA256: "SHA-256",
-  SHA512: "SHA-512",
-};
-
 function normalizeAlgorithm(algorithm) {
   return algorithm.toUpperCase().replace(/-/g, "");
 }
@@ -71,18 +65,6 @@ export function createHash(algorithm) {
 
     digest(encoding) {
       return encode(hasher(inputData), encoding);
-    },
-
-    async digestAsync(encoding) {
-      const subtleAlg = SUBTLE_ALG[alg];
-
-      if (!subtleAlg) {
-        // SubtleCrypto doesn't cover MD5; fall back to the sync hasher.
-        return encode(hasher(inputData), encoding);
-      }
-
-      const buf = await crypto.subtle.digest(subtleAlg, inputData);
-      return encode(new Uint8Array(buf), encoding);
     },
   };
 }
