@@ -106,6 +106,35 @@ app.use("/api/version", versionRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/plugins", pluginRoutes);
 app.use("/api/bootstrap", bootstrapRoutes);
+// SSE event channel @@IGNIS_SSE_PATCH@@
+// Mirrors /ws for environments where the WebSocket upgrade is blocked.
+app.get("/api/events", (req, res) => {
+  const vaultId = String(req.query.vault || "");
+
+  if (!vaultId) {
+    res.status(400).json({ error: "vault is required" });
+    return;
+  }
+
+  const channels = String(req.query.channels || "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const clientId = String(req.query.cid || "");
+
+  wss.attachSse(vaultId, req, res, { channels, clientId });
+});
+
+app.post("/api/events/send", express.json({ limit: "4mb" }), (req, res) => {
+  try {
+    wss.dispatchIncoming(req.body, String(req.query.cid || ""));
+  } catch (e) {
+    console.warn("[sse] dispatch failed:", e.message);
+  }
+
+  res.json({ ok: true });
+});
+
 
 // Serve vault files for resource URLs (images, attachments, etc.)
 // Vault ID is the first path segment: /vault-files/<vault-id>/path/to/file

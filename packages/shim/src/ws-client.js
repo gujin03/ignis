@@ -10,6 +10,13 @@ export function createWsClient() {
   let manuallyClosed = false;
   let state = "closed"; // "closed" | "connecting" | "open"
 
+  // @@IGNIS_SSE_PATCH@@ SSE fallback, used when the socket never manages to open
+  // (gateways that reject `Upgrade: websocket`). See openEvents() below.
+  let es = null;
+  let usingSse = false;
+  let sseClientId = null;
+  let socketEverOpened = false;
+
   const globalSubs = new Map(); // type -> Set<handler>
   const channelSubs = new Map(); // channelName -> Map<type, Set<handler>>
   const channelSubCount = new Map(); // channelName -> integer
@@ -35,6 +42,21 @@ export function createWsClient() {
   function postRaw(message) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
+      return;
+    }
+
+    // @@IGNIS_SSE_PATCH@@ SSE is one-way; upstream messages go over HTTP.
+    if (usingSse && sseClientId) {
+      try {
+        fetch(`/api/events/send?cid=${encodeURIComponent(sseClientId)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(message),
+          keepalive: true,
+        }).catch(() => {});
+      } catch (e) {
+        console.warn("[sse] post failed:", e);
+      }
     }
   }
 
@@ -85,6 +107,12 @@ export function createWsClient() {
       return;
     }
 
+    // @@IGNIS_SSE_PATCH@@ Once the socket has proven unusable, go straight to SSE.
+    if (usingSse) {
+      openEvents();
+      return;
+    }
+
     setState("connecting");
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -102,6 +130,7 @@ export function createWsClient() {
 
     ws.onopen = () => {
       console.log("[ws] connected");
+      socketEverOpened = true;
       setState("open");
 
       // Re-establish channel subscriptions on the new connection.
@@ -135,9 +164,22 @@ export function createWsClient() {
       ws = null;
       setState("closed");
 
-      if (!manuallyClosed) {
-        scheduleReconnect();
+      if (manuallyClosed) {
+        return;
       }
+
+      // @@IGNIS_SSE_PATCH@@ A socket that never opened means the upgrade was
+      // refused, not that the network blipped - stop retrying it and stream
+      // events over HTTP instead.
+      if (!socketEverOpened && !usingSse) {
+        console.warn("[ws] upgrade refused; falling back to SSE");
+        usingSse = true;
+        es = null;
+        openEvents();
+        return;
+      }
+
+      scheduleReconnect();
     };
 
     ws.onerror = (e) => {
@@ -157,6 +199,98 @@ export function createWsClient() {
     }, RECONNECT_DELAY_MS);
   }
 
+  // @@IGNIS_SSE_PATCH@@ Server-Sent Events transport. Same message shape and the
+  // same dispatch table as the socket, so consumers do not need to care which
+  // transport is in use.
+  function openEvents() {
+    if (es) {
+      return;
+    }
+
+    if (typeof EventSource === "undefined") {
+      console.warn("[sse] EventSource unavailable; staying on reconnect loop");
+      usingSse = false;
+      scheduleReconnect();
+      return;
+    }
+
+    if (!sseClientId) {
+      sseClientId = makeClientId();
+    }
+
+    const params = new URLSearchParams({
+      vault: vaultId,
+      cid: sseClientId,
+    });
+    const channels = Array.from(channelSubCount.keys());
+
+    if (channels.length > 0) {
+      params.set("channels", channels.join(","));
+    }
+
+    try {
+      es = new EventSource(`/api/events?${params.toString()}`);
+    } catch (e) {
+      console.error("[sse] failed to create EventSource:", e);
+      es = null;
+      usingSse = false;
+      scheduleReconnect();
+      return;
+    }
+
+    es.onopen = () => {
+      console.log("[sse] connected");
+      setState("open");
+
+      for (const fn of openSubs) {
+        try {
+          fn();
+        } catch (e) {
+          console.error("[sse] open subscriber threw:", e);
+        }
+      }
+    };
+
+    es.onmessage = (event) => {
+      let msg;
+
+      try {
+        msg = JSON.parse(event.data);
+      } catch (e) {
+        console.error("[sse] failed to parse message:", e);
+        return;
+      }
+
+      dispatch(msg);
+    };
+
+    es.onerror = () => {
+      if (manuallyClosed || !es) {
+        return;
+      }
+
+      // EventSource reconnects on its own; only a hard close needs rebuilding.
+      if (es.readyState === 2) {
+        es.close();
+        es = null;
+        setState("closed");
+        scheduleReconnect();
+      }
+    };
+  }
+
+  function makeClientId() {
+    try {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+    } catch {
+      // Fall through to the random id below.
+    }
+
+    return `c${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  }
+
   function connect(id) {
     if (!id) {
       console.warn("[ws] no vault id; skipping connect");
@@ -165,11 +299,20 @@ export function createWsClient() {
 
     vaultId = id;
     manuallyClosed = false;
+    // @@IGNIS_SSE_PATCH@@ Give the socket another chance on a fresh connect.
+    usingSse = false;
+    socketEverOpened = false;
     openSocket();
   }
 
   function disconnect() {
     manuallyClosed = true;
+
+    // @@IGNIS_SSE_PATCH@@
+    if (es) {
+      es.close();
+      es = null;
+    }
 
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);

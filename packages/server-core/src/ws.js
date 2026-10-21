@@ -133,6 +133,187 @@ function setupWebSocket(server, opts = {}) {
     };
   };
 
+  // ---- Server-Sent Events fallback @@IGNIS_SSE_PATCH@@ ----------------
+  // Some corporate gateways answer `Upgrade: websocket` with a 403 while
+  // happily allowing long-lived plain HTTP responses. SSE carries the same
+  // messages over such a stream, so a browser behind one of those gateways
+  // keeps receiving events instead of degrading to a permanently stale view.
+
+  const sseClientsById = new Map();
+
+  function sseWrite(res, payload) {
+    try {
+      const body =
+        typeof payload === "string" ? payload : JSON.stringify(payload);
+
+      res.write("data: " + body + "\n\n");
+    } catch {
+      // Client vanished mid-write; the close handler does the cleanup.
+    }
+  }
+
+  // Wraps an HTTP response in a minimal ws-compatible shim and registers it in
+  // clientsByVault, so both global and channel broadcasts reach it without
+  // touching the existing broadcast paths.
+  wss.attachSse = function attachSse(vaultId, req, res, options = {}) {
+    const { channels = [], clientId = "" } = options;
+    const vaultPath = getVaultPath(vaultId);
+
+    if (!vaultPath) {
+      res.statusCode = 404;
+      res.end("vault not found");
+      return null;
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "X-Accel-Buffering": "no",
+      Connection: "keep-alive",
+    });
+
+    if (typeof res.flushHeaders === "function") {
+      res.flushHeaders();
+    }
+
+    const client = {
+      readyState: 1,
+      OPEN: 1,
+      send(payload) {
+        sseWrite(res, payload);
+      },
+      close() {
+        try {
+          res.end();
+        } catch {
+          // Already closed.
+        }
+      },
+    };
+
+    if (!clientsByVault.has(vaultId)) {
+      clientsByVault.set(vaultId, new Set());
+    }
+
+    clientsByVault.get(vaultId).add(client);
+
+    if (clientId) {
+      sseClientsById.set(clientId, client);
+    }
+
+    // Channels known at attach time, plus whatever the client asks for.
+    for (const name of channelHandlers.keys()) {
+      addClientChannel(client, name);
+    }
+
+    for (const name of channels) {
+      if (typeof name === "string" && name) {
+        addClientChannel(client, name);
+      }
+    }
+
+    watcher.startWatching(vaultId, vaultPath);
+
+    const listener = (event) => sseWrite(res, event);
+
+    watcher.addListener(vaultId, listener);
+
+    // Opens the stream immediately so EventSource fires `onopen` without waiting
+    // for the first real event.
+    res.write(": connected\n\n");
+
+    // Comment frames keep intermediaries from reaping an idle connection.
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(": hb\n\n");
+      } catch {
+        // Ignored; close handler stops the timer.
+      }
+    }, 25000);
+
+    heartbeat.unref?.();
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+
+      try {
+        watcher.removeListener(vaultId, listener);
+      } catch {
+        // Watcher already gone.
+      }
+
+      const set = clientsByVault.get(vaultId);
+
+      if (set) {
+        set.delete(client);
+
+        if (set.size === 0) {
+          clientsByVault.delete(vaultId);
+        }
+      }
+
+      channelSubsByClient.delete(client);
+
+      if (clientId) {
+        sseClientsById.delete(clientId);
+      }
+
+      try {
+        res.end();
+      } catch {
+        // Already closed.
+      }
+    };
+
+    req.on("close", cleanup);
+    res.on("close", cleanup);
+
+    console.log(
+      `[sse] Client attached to vault: ${vaultId} (${clientId || "-"})`,
+    );
+
+    return client;
+  };
+
+  // Upstream messages from an SSE client (POST /api/events/send) reuse the same
+  // handler tables as WebSocket messages.
+  wss.dispatchIncoming = function dispatchIncoming(msg, clientId) {
+    if (!msg || typeof msg !== "object") {
+      return;
+    }
+
+    const client = clientId ? sseClientsById.get(clientId) : null;
+
+    if (msg.type === "subscribe-channel" && typeof msg.channel === "string") {
+      if (client) {
+        addClientChannel(client, msg.channel);
+      }
+
+      return;
+    }
+
+    if (msg.type === "unsubscribe-channel" && typeof msg.channel === "string") {
+      if (client) {
+        removeClientChannel(client, msg.channel);
+      }
+
+      return;
+    }
+
+    try {
+      if (msg.channel) {
+        channelHandlers.get(msg.channel)?.get(msg.type)?.(msg, client);
+      } else {
+        wss.messageHandlers.get(msg.type)?.(msg, client);
+      }
+    } catch (e) {
+      console.warn(
+        `[sse] handler for ${msg.channel ? msg.channel + ":" : ""}${msg.type} threw:`,
+        e.message,
+      );
+    }
+  };
+
   wss.on("connection", (ws, req) => {
     if (originSet) {
       const origin = req.headers.origin;
